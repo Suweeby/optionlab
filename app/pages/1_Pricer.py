@@ -1,7 +1,8 @@
 """Pricer page: Black-Scholes, binomial and Monte Carlo side by side."""
 import pandas as pd
 import streamlit as st
-
+from optionlab.greeks import greeks, to_trader_units
+from optionlab.payoffs import moneyness
 from optionlab.payoffs import moneyness
 from optionlab.pricing.compare import price_all
 
@@ -70,6 +71,8 @@ try:
     res = cached_price_all(S, K, r, sigma, T, option_type, int(n_steps), int(n_paths),
                            int(seed), antithetic)
     status = moneyness(S, K, option_type)
+    greek = to_trader_units(greeks(S, K, r, sigma, T, option_type))
+        
 except ValueError as exc:
     st.error(f"Could not price this option: {exc}")
     st.stop()
@@ -108,6 +111,21 @@ if res.bs_inside_mc_interval:
 else:
     st.info("The Black-Scholes price lies outside this Monte Carlo interval. "
             "That happens in about 1 run in 20 by design; try another seed or more simulations.")
+
+st.subheader("Greeks (Black-Scholes)")
+st.caption("How much the option price changes when one input changes slightly, all else equal.")
+g1, g2, g3, g4, g5 = st.columns(5)
+g1.metric("Delta", f"{greek.delta:.4f}",
+          help="Price change per $1 rise in the stock. Also roughly the number of shares "
+               "that hedges the option.")
+g2.metric("Gamma", f"{greek.gamma:.4f}",
+          help="How much delta changes per $1 rise in the stock (the curvature).")
+g3.metric("Vega (per 1% vol)", f"{greek.vega:.4f}",
+          help="Price change when volatility rises by one percentage point.")
+g4.metric("Theta (per day)", f"{greek.theta:.4f}",
+          help="Price change from one day passing (time decay). Usually negative for a bought option.")
+g5.metric("Rho (per 1% rate)", f"{greek.rho:.4f}",
+          help="Price change when the interest rate rises by one percentage point.")
 
 with st.expander("How to read this"):
     st.markdown(

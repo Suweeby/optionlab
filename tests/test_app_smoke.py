@@ -21,7 +21,7 @@ def test_home_page_runs():
 def test_pricer_default_inputs_show_three_prices():
     at = _pricer()
     assert not at.exception
-    assert len(at.metric) == 3
+    assert len(at.metric) == 8                      # 3 prices + 5 Greeks
     assert at.metric[0].value == "10.4506"          # Black-Scholes anchor call
 
 
@@ -53,3 +53,10 @@ def test_impossible_tree_probability_shows_error_not_crash():
     at.number_input(key="sigma_pct").set_value(10.0).run()
     assert not at.exception
     assert len(at.error) == 1
+
+def test_pricer_shows_greeks_with_correct_signs():
+    at = _pricer()
+    assert float(at.metric[3].value) == pytest.approx(0.6368, abs=1e-4)    # call delta
+    assert float(at.metric[6].value) < 0                                   # call theta per day
+    at.radio(key="option_type").set_value("put").run()
+    assert float(at.metric[3].value) < 0                                   # put delta
