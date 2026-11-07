@@ -1,6 +1,6 @@
 import pytest
 
-from optionlab.convergence import binomial_convergence
+from optionlab.convergence import binomial_convergence, monte_carlo_convergence
 from optionlab.pricing.black_scholes import call_price
 
 P = dict(S=100, K=100, r=0.05, sigma=0.2, T=1.0)
@@ -24,3 +24,29 @@ def test_error_shrinks_across_default_grid():
     df = binomial_convergence(**P)
     assert df["abs_error"].iloc[-1] < df["abs_error"].iloc[0]
     assert df["abs_error"].iloc[-1] < 0.01
+
+
+# ---- Monte Carlo convergence ------------------------------------------------------
+
+def test_mc_table_structure():
+    df = monte_carlo_convergence(**P, path_counts=(100, 1000), replications=5)
+    assert list(df.columns) == ["n_paths", "black_scholes", "mean_price", "mean_std_error", "rmse"]
+    assert list(df["n_paths"]) == [100, 1000]
+    assert df["black_scholes"].iloc[0] == pytest.approx(call_price(**P))
+
+
+def test_mc_standard_error_and_rmse_fall_like_one_over_sqrt_n():
+    df = monte_carlo_convergence(**P, path_counts=(1_000, 100_000), replications=100, seed=3)
+    small, large = df.iloc[0], df.iloc[1]
+    assert small["mean_std_error"] / large["mean_std_error"] == pytest.approx(10.0, rel=0.05)
+    assert small["rmse"] / large["rmse"] == pytest.approx(10.0, rel=0.35)
+    # reported SE is honest: it matches the actual RMSE
+    assert large["mean_std_error"] == pytest.approx(large["rmse"], rel=0.3)
+
+
+def test_mc_convergence_is_reproducible_and_needs_replications():
+    a = monte_carlo_convergence(**P, path_counts=(500,), replications=4, seed=9)
+    b = monte_carlo_convergence(**P, path_counts=(500,), replications=4, seed=9)
+    assert a.equals(b)
+    with pytest.raises(ValueError):
+        monte_carlo_convergence(**P, replications=1)
