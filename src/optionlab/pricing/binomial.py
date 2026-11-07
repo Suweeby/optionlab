@@ -5,6 +5,8 @@ import math
 
 import numpy as np
 
+from optionlab.payoffs import payoff
+
 
 def binomial_price(
     S: float,
@@ -19,6 +21,9 @@ def binomial_price(
 
     S: spot price, K: strike, r: continuously compounded risk-free rate,
     sigma: annual volatility, T: years to expiry, n: number of time steps.
+
+    Unlike Black-Scholes, the tree needs sigma > 0 and T > 0: with sigma = 0
+    we would get u = d = 1 and the probability formula divides by zero.
     """
     if S <= 0 or K <= 0:
         raise ValueError("S and K must be positive.")
@@ -28,8 +33,6 @@ def binomial_price(
         raise ValueError("T must be positive.")
     if n < 1:
         raise ValueError("n must be at least 1.")
-    if option_type not in ("call", "put"):
-        raise ValueError("option_type must be 'call' or 'put'.")
 
     dt = T / n
     u = math.exp(sigma * math.sqrt(dt))      # up factor
@@ -42,10 +45,9 @@ def binomial_price(
     # Terminal prices: after n steps with j up-moves, S * u^j * d^(n-j).
     j = np.arange(n + 1)
     ST = S * u**j * d ** (n - j)
-    values = np.maximum(ST - K, 0.0) if option_type == "call" else np.maximum(K - ST, 0.0)
+    values = payoff(ST, K, option_type)      # shared payoff function (raises on bad type)
 
     # Backward induction: each node = discounted expected value of its two children.
-    # values[1:] are the up-children, values[:-1] the down-children; the array shrinks by 1 per step.
     for _ in range(n):
         values = disc * (p * values[1:] + (1.0 - p) * values[:-1])
 
