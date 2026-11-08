@@ -82,3 +82,40 @@ def monte_carlo_convergence(
             }
         )
     return pd.DataFrame(rows)
+
+def monte_carlo_single_runs(
+    S: float,
+    K: float,
+    r: float,
+    sigma: float,
+    T: float,
+    option_type: str = "call",
+    path_counts=DEFAULT_PATH_COUNTS,
+    antithetic: bool = False,
+    seed: int = 42,
+    confidence: float = 0.95,
+) -> pd.DataFrame:
+    """One Monte Carlo run per path count (fresh random numbers each), with its confidence interval.
+
+    Columns: n_paths, black_scholes, price, std_error, ci_low, ci_high, error, covers
+    (covers = does the confidence interval contain the Black-Scholes price?).
+    """
+    bs = bs_price(S, K, r, sigma, T, option_type)
+    rng = np.random.default_rng(seed)
+    rows = []
+    for n in path_counts:
+        res = mc_price(S, K, r, sigma, T, n_paths=n, option_type=option_type, seed=rng,
+                       antithetic=antithetic, confidence=confidence)
+        rows.append(
+            {
+                "n_paths": n,
+                "black_scholes": bs,
+                "price": res.price,
+                "std_error": res.std_error,
+                "ci_low": res.ci_low,
+                "ci_high": res.ci_high,
+                "error": res.price - bs,
+                "covers": bool(res.ci_low <= bs <= res.ci_high),
+            }
+        )
+    return pd.DataFrame(rows)

@@ -1,6 +1,5 @@
 import pytest
-
-from optionlab.convergence import binomial_convergence, monte_carlo_convergence
+from optionlab.convergence import binomial_convergence, monte_carlo_convergence, monte_carlo_single_runs
 from optionlab.pricing.black_scholes import call_price
 
 P = dict(S=100, K=100, r=0.05, sigma=0.2, T=1.0)
@@ -50,3 +49,27 @@ def test_mc_convergence_is_reproducible_and_needs_replications():
     assert a.equals(b)
     with pytest.raises(ValueError):
         monte_carlo_convergence(**P, replications=1)
+
+# ---- single Monte Carlo runs with confidence intervals ----------------------------
+
+def test_single_runs_table_structure():
+    df = monte_carlo_single_runs(**P, path_counts=(1_000, 10_000), seed=1)
+    assert list(df.columns) == ["n_paths", "black_scholes", "price", "std_error",
+                                "ci_low", "ci_high", "error", "covers"]
+    assert list(df["n_paths"]) == [1_000, 10_000]
+    assert (df["error"] == df["price"] - df["black_scholes"]).all()
+    assert (df["covers"] == ((df["ci_low"] <= df["black_scholes"]) & (df["black_scholes"] <= df["ci_high"]))).all()
+    assert (df["ci_low"] < df["price"]).all() and (df["price"] < df["ci_high"]).all()
+
+
+def test_single_runs_standard_error_shrinks_and_is_reproducible():
+    a = monte_carlo_single_runs(**P, path_counts=(1_000, 100_000), seed=2)
+    b = monte_carlo_single_runs(**P, path_counts=(1_000, 100_000), seed=2)
+    assert a.equals(b)
+    assert a["std_error"].iloc[0] / a["std_error"].iloc[1] == pytest.approx(10.0, rel=0.15)
+
+
+def test_single_runs_antithetic_has_smaller_standard_error():
+    plain = monte_carlo_single_runs(**P, path_counts=(100_000,), seed=3)
+    anti = monte_carlo_single_runs(**P, path_counts=(100_000,), seed=3, antithetic=True)
+    assert anti["std_error"].iloc[0] < 0.9 * plain["std_error"].iloc[0]

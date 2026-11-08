@@ -60,3 +60,49 @@ def test_pricer_shows_greeks_with_correct_signs():
     assert float(at.metric[6].value) < 0                                   # call theta per day
     at.radio(key="option_type").set_value("put").run()
     assert float(at.metric[3].value) < 0                                   # put delta
+
+# ---- Simulator and Convergence pages ----------------------------------------------
+
+def _page(name: str) -> AppTest:
+    return AppTest.from_file(str(APP / "pages" / name), default_timeout=120).run()
+
+
+def test_simulator_real_world_default():
+    at = _page("2_Simulator.py")
+    assert not at.exception
+    assert [m.label for m in at.metric][-1] == "95% value at risk"
+    p_above = float(at.metric[0].value)
+    assert p_above == pytest.approx(0.618, abs=0.02)          # N(0.3) for mu = 8%, sigma = 20%
+
+
+def test_simulator_risk_neutral_mode():
+    at = _page("2_Simulator.py")
+    at.radio(key="sim_mode").set_value("Risk-neutral (drift = r)").run()
+    assert not at.exception
+    assert len(at.warning) == 1                               # the "not a prediction" warning
+    labels = [m.label for m in at.metric]
+    assert "95% value at risk" not in labels
+    assert float(at.metric[0].value) == pytest.approx(0.5596, abs=0.02)    # N(d2) for r = 5%
+
+
+def test_simulator_handles_few_paths_and_bad_inputs():
+    at = _page("2_Simulator.py")
+    at.number_input(key="sim_paths").set_value(10)
+    at.number_input(key="sim_draw").set_value(100).run()      # more drawn than simulated: capped
+    assert not at.exception and len(at.error) == 0
+
+
+def test_convergence_default_page():
+    at = _page("3_Convergence.py")
+    assert not at.exception
+    assert len(at.tabs) == 2
+    assert at.metric[0].value == "10.4506"
+    labels = [m.label for m in at.metric]
+    assert any(label.startswith("Tree price at n = 1,000") for label in labels)
+
+
+def test_convergence_put():
+    at = _page("3_Convergence.py")
+    at.radio(key="conv_type").set_value("put").run()
+    assert not at.exception
+    assert at.metric[0].value == "5.5735"

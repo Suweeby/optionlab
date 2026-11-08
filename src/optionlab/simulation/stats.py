@@ -4,6 +4,7 @@ from __future__ import annotations
 import math
 
 import numpy as np
+from scipy.stats import norm
 
 
 def _as_prices(ST) -> np.ndarray:
@@ -67,3 +68,19 @@ def gbm_log_return_theory(drift: float, sigma: float, T: float) -> dict:
 def gbm_terminal_mean(S0: float, drift: float, T: float) -> float:
     """E[S_T] = S0 * exp(drift * T) (the sigma^2/2 terms cancel exactly)."""
     return S0 * math.exp(drift * T)
+
+def gbm_quantile(S0: float, drift: float, sigma: float, t, q: float):
+    """The q-quantile of S_t under GBM, for a time t or an array of times.
+
+    S_t = S0 exp((drift - sigma^2/2) t + sigma sqrt(t) Z), so the quantile uses z_q = norm.ppf(q).
+    """
+    if S0 <= 0:
+        raise ValueError("S0 must be positive.")
+    if sigma < 0:
+        raise ValueError("sigma cannot be negative.")
+    if not 0.0 < q < 1.0:
+        raise ValueError("q must be strictly between 0 and 1.")
+    t = np.asarray(t, dtype=float)
+    if (t < 0).any():
+        raise ValueError("t cannot be negative.")
+    return S0 * np.exp((drift - 0.5 * sigma**2) * t + sigma * np.sqrt(t) * norm.ppf(q))

@@ -15,7 +15,11 @@ against each other:
 - **Binomial tree**: step-by-step backward induction
 - **Monte Carlo**: the average of many simulated futures
 
-Use the page list in the sidebar. Start with **Pricer**.
+Use the page list in the sidebar:
+
+- **Pricer**: the three prices side by side, plus the Greeks
+- **Simulator**: possible futures of a stock, in real-world or risk-neutral mode
+- **Convergence**: how the tree and Monte Carlo approach Black-Scholes
 
 **What this is not:** a stock-price predictor, a trading signal or financial advice.
 It shows what a standard pricing model implies for the inputs you choose.
