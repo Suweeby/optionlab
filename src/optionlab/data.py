@@ -43,6 +43,12 @@ class PriceData:
     def is_real(self) -> bool:
         return self.source != "sample"
 
+def resolve_cache_dir(cache_dir: Path | str | None = None) -> Path:
+    """Explicit argument first, then the OPTIONLAB_CACHE_DIR environment variable, then data/cache."""
+    if cache_dir is not None:
+        return Path(cache_dir)
+    env = os.environ.get("OPTIONLAB_CACHE_DIR")
+    return Path(env) if env else DEFAULT_CACHE_DIR
 
 def normalize_ticker(ticker: str) -> str:
     """Upper-case and validate a ticker. The ticker becomes a file name, so be strict."""
@@ -131,7 +137,7 @@ def _window(prices: pd.Series, start: date) -> pd.Series:
 def load_prices(
     ticker: str,
     lookback_days: int = 730,
-    cache_dir: Path | str = DEFAULT_CACHE_DIR,
+    cache_dir: Path | str | None = None,
     max_age_hours: float = 24.0,
     fetcher: Callable[[str, date, date], pd.DataFrame] | None = None,
     today: date | None = None,
@@ -144,7 +150,7 @@ def load_prices(
     today = today or date.today()
     start = today - timedelta(days=int(lookback_days))
     fetch = fetcher or _yfinance_fetcher
-    path = Path(cache_dir) / f"{ticker}.csv"
+    path = resolve_cache_dir(cache_dir) / f"{ticker}.csv"
     cached = _read_cache(path) if path.exists() else None
 
     # 1) fresh cache that covers the window

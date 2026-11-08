@@ -1,4 +1,5 @@
 """Smoke tests: the Streamlit pages run without crashing and show sensible numbers."""
+import sys
 from pathlib import Path
 
 import pytest
@@ -106,3 +107,95 @@ def test_convergence_put():
     at.radio(key="conv_type").set_value("put").run()
     assert not at.exception
     assert at.metric[0].value == "5.5735"
+
+# ---- Market Data page (with a stand-in for yfinance, so no network is needed) ------
+
+import types  # noqa: E402
+from datetime import date, timedelta  # noqa: E402
+
+import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
+
+from optionlab.pricing.black_scholes import bs_price  # noqa: E402
+
+FAKE_SPOT, FAKE_SIGMA, FAKE_R = 150.0, 0.30, 0.04
+FAKE_EXPIRY = (date.today() + timedelta(days=30)).isoformat()
+
+
+def _fake_yfinance(fail=False):
+    class FakeTicker:
+        def __init__(self, symbol):
+            if fail:
+                raise ConnectionError("offline")
+            self.options = (FAKE_EXPIRY,)
+
+        def history(self, start, end, auto_adjust):
+            index = pd.bdate_range(start, pd.Timestamp(end) - pd.Timedelta(days=1))
+            walk = np.cumsum(np.random.default_rng(0).normal(0, 0.012, len(index)))
+            return pd.DataFrame({"Close": FAKE_SPOT * np.exp(walk - walk[-1])}, index=index)
+
+        def option_chain(self, expiry):
+            strikes = np.arange(120.0, 181.0, 5.0)
+            T = 30 / 365
+            stamp = pd.Timestamp.now(tz="UTC") - pd.Timedelta(hours=1)
+
+            def side(kind):
+                price = np.array([bs_price(FAKE_SPOT, k, FAKE_R, FAKE_SIGMA, T, kind) for k in strikes])
+                return pd.DataFrame({"contractSymbol": "X", "strike": strikes, "bid": price * 0.99,
+                                     "ask": price * 1.01, "lastPrice": price, "volume": 5,
+                                     "openInterest": 50, "impliedVolatility": FAKE_SIGMA,
+                                     "lastTradeDate": stamp})
+            return types.SimpleNamespace(calls=side("call"), puts=side("put"))
+
+    return types.SimpleNamespace(Ticker=FakeTicker)
+
+
+@pytest.fixture
+def market_env(tmp_path, monkeypatch):
+    import streamlit as st
+    st.cache_data.clear()
+    monkeypatch.setenv("OPTIONLAB_CACHE_DIR", str(tmp_path))
+    yield monkeypatch
+    st.cache_data.clear()
+
+
+def _market(**kwargs) -> AppTest:
+    return AppTest.from_file(str(APP / "pages" / "4_Market_Data.py"), default_timeout=120).run()
+
+
+def _percent(metric) -> float:
+    return float(metric.value.strip("%")) / 100
+
+
+def test_market_page_recovers_implied_volatility(market_env):
+    market_env.setitem(sys.modules, "yfinance", _fake_yfinance())
+    at = _market()
+    assert not at.exception and len(at.error) == 0
+    labels = [m.label for m in at.metric]
+    assert labels[:2] == ["Spot price (last close)", "Historical volatility"]
+    assert at.metric[0].value == "150.00"
+    atm = next(m for m in at.metric if m.label.startswith("Implied volatility near the money"))
+    assert _percent(atm) == pytest.approx(FAKE_SIGMA, abs=0.005)      # quotes were priced at 30%
+
+
+def test_market_page_put_side(market_env):
+    market_env.setitem(sys.modules, "yfinance", _fake_yfinance())
+    at = _market()
+    at.radio(key="mkt_type").set_value("put").run()
+    assert not at.exception and len(at.error) == 0
+    atm = next(m for m in at.metric if m.label.startswith("Implied volatility near the money"))
+    assert _percent(atm) == pytest.approx(FAKE_SIGMA, abs=0.005)
+
+
+def test_market_page_offline_shows_error_not_crash(market_env):
+    market_env.setitem(sys.modules, "yfinance", _fake_yfinance(fail=True))
+    at = _market()
+    assert not at.exception
+    assert len(at.error) == 1                                          # synthetic data is refused
+
+
+def test_market_page_rejects_a_bad_ticker(market_env):
+    market_env.setitem(sys.modules, "yfinance", _fake_yfinance())
+    at = AppTest.from_file(str(APP / "pages" / "4_Market_Data.py"), default_timeout=120).run()
+    at.text_input(key="mkt_ticker").set_value("../evil").run()
+    assert not at.exception and len(at.error) == 1

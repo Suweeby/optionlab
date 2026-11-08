@@ -211,3 +211,12 @@ def test_sample_prices_are_deterministic_positive_and_have_the_stated_volatility
     assert (a > 0).all() and a.index.is_monotonic_increasing
     assert not a.equals(sample_prices(seed=4, end=TODAY))
     assert historical_volatility(a) == pytest.approx(0.25, abs=0.04)
+
+# ---------------------------------------------------------------- cache directory
+def test_resolve_cache_dir_order(tmp_path, monkeypatch):
+    from optionlab.data import DEFAULT_CACHE_DIR, resolve_cache_dir
+    monkeypatch.delenv("OPTIONLAB_CACHE_DIR", raising=False)
+    assert resolve_cache_dir() == DEFAULT_CACHE_DIR
+    monkeypatch.setenv("OPTIONLAB_CACHE_DIR", str(tmp_path))
+    assert resolve_cache_dir() == tmp_path
+    assert resolve_cache_dir(tmp_path / "x") == tmp_path / "x"          # explicit argument wins
