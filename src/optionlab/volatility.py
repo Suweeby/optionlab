@@ -7,6 +7,7 @@ Daily numbers are annualized with the usual 252-trading-day convention.
 from __future__ import annotations
 
 import math
+from collections.abc import Iterable
 
 import numpy as np
 import pandas as pd
@@ -76,7 +77,7 @@ def ewma_volatility(prices: pd.Series, lam: float = 0.94,
     return np.sqrt(variance * trading_days)
 
 
-def volatility_by_lookback(prices: pd.Series, windows=(21, 63, 126, 252),
+def volatility_by_lookback(prices: pd.Series, windows: Iterable[int] = (21, 63, 126, 252),
                            trading_days: float = TRADING_DAYS) -> pd.DataFrame:
     """Volatility estimate for several lookback windows, plus the full sample.
 

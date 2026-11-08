@@ -22,6 +22,8 @@ from optionlab.simulation.gbm import simulate_terminal_prices
 
 @dataclass(frozen=True)
 class Greeks:
+    """The five Greeks of one option."""
+
     delta: float
     gamma: float
     vega: float

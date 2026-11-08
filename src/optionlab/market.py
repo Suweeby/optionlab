@@ -11,8 +11,9 @@ import os
 import re
 import time
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from pathlib import Path
+from typing import Protocol
 
 import numpy as np
 import pandas as pd
@@ -27,7 +28,7 @@ CHAIN_COLUMNS = ["option_type", "contractSymbol", "strike", "bid", "ask", "lastP
 
 
 # ---------------------------------------------------------------- dates
-def parse_expiry(expiry) -> date:
+def parse_expiry(expiry: date | str) -> date:
     """Accept a date or a 'YYYY-MM-DD' string (strict, because it becomes part of a file name)."""
     if isinstance(expiry, datetime):
         return expiry.date()
@@ -38,7 +39,7 @@ def parse_expiry(expiry) -> date:
     return date.fromisoformat(expiry)
 
 
-def time_to_expiry(expiry, today: date | None = None) -> float:
+def time_to_expiry(expiry: date | str, today: date | None = None) -> float:
     """Years until expiry, counted in calendar days / 365."""
     today = today or date.today()
     days = (parse_expiry(expiry) - today).days
@@ -48,15 +49,29 @@ def time_to_expiry(expiry, today: date | None = None) -> float:
 
 
 # ---------------------------------------------------------------- data source
+class OptionsSource(Protocol):
+    """Anything that can list expiries and return an option chain (the real source or a test double)."""
+
+    def expiries(self, ticker: str) -> list[str]:
+        """Expiry dates (YYYY-MM-DD strings) with listed options."""
+        ...
+
+    def chain(self, ticker: str, expiry: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """(calls, puts) tables for one expiry."""
+        ...
+
+
 class YFinanceOptionsSource:
     """Default source. yfinance is imported lazily so the rest works without it."""
 
     def expiries(self, ticker: str) -> list[str]:
+        """Expiry dates (YYYY-MM-DD strings) with listed options."""
         import yfinance as yf
 
         return list(yf.Ticker(ticker).options)
 
-    def chain(self, ticker: str, expiry: str):
+    def chain(self, ticker: str, expiry: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """(calls, puts) tables for one expiry."""
         import yfinance as yf
 
         chain = yf.Ticker(ticker).option_chain(expiry)
@@ -82,6 +97,8 @@ def standardize_chain(calls: pd.DataFrame, puts: pd.DataFrame) -> pd.DataFrame:
 # ---------------------------------------------------------------- loading with cache
 @dataclass(frozen=True)
 class ChainData:
+    """Calls and puts for one expiry, plus where the quotes came from."""
+
     ticker: str
     expiry: str
     chain: pd.DataFrame
@@ -108,7 +125,8 @@ def _write_chain(path: Path, chain: pd.DataFrame) -> None:
     os.replace(temp, path)
 
 
-def list_expiries(ticker: str, cache_dir=None, source=None, today: date | None = None) -> list[str]:
+def list_expiries(ticker: str, cache_dir: Path | str | None = None,
+                  source: OptionsSource | None = None, today: date | None = None) -> list[str]:
     """Future expiry dates with listed options. Offline: the expiries found in the local cache."""
     ticker = normalize_ticker(ticker)
     today = today or date.today()
@@ -127,8 +145,9 @@ def list_expiries(ticker: str, cache_dir=None, source=None, today: date | None =
     return valid
 
 
-def load_option_chain(ticker: str, expiry, cache_dir=None, max_age_minutes: float = 15.0,
-                      source=None) -> ChainData:
+def load_option_chain(ticker: str, expiry: date | str, cache_dir: Path | str | None = None,
+                      max_age_minutes: float = 15.0,
+                      source: OptionsSource | None = None) -> ChainData:
     """Calls and puts for one expiry: fresh cache, else download, else older cache, else an error."""
     ticker = normalize_ticker(ticker)
     expiry = parse_expiry(expiry).isoformat()

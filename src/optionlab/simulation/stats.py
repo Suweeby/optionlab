@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 
 import numpy as np
+from numpy.typing import ArrayLike
 from scipy.stats import norm
 
 
@@ -16,14 +18,14 @@ def _as_prices(ST) -> np.ndarray:
     return arr
 
 
-def prob_above(ST, K: float) -> float:
+def prob_above(ST: ArrayLike, K: float) -> float:
     """Fraction of simulated terminal prices strictly above K, i.e. estimate of P(S_T > K)."""
     if K <= 0:
         raise ValueError("K must be positive.")
     return float(np.mean(_as_prices(ST) > K))
 
 
-def value_at_risk(ST, S0: float, confidence: float = 0.95) -> float:
+def value_at_risk(ST: ArrayLike, S0: float, confidence: float = 0.95) -> float:
     """Simple simulation VaR: the loss (S0 - S_T) that is exceeded in only
     (1 - confidence) of the scenarios. Reported as a positive number; 0 if the
     quantile of the loss is a gain."""
@@ -35,8 +37,8 @@ def value_at_risk(ST, S0: float, confidence: float = 0.95) -> float:
     return max(float(np.quantile(loss, confidence)), 0.0)
 
 
-def terminal_summary(ST, K: float | None = None,
-                     percentiles=(5, 25, 50, 75, 95)) -> dict:
+def terminal_summary(ST: ArrayLike, K: float | None = None,
+                     percentiles: Sequence[float] = (5, 25, 50, 75, 95)) -> dict:
     """Mean, standard deviation, min, max, percentiles and (optionally) P(S_T > K)."""
     arr = _as_prices(ST)
     out = {
@@ -52,7 +54,7 @@ def terminal_summary(ST, K: float | None = None,
     return out
 
 
-def log_return_stats(ST, S0: float) -> dict:
+def log_return_stats(ST: ArrayLike, S0: float) -> dict:
     """Sample mean and variance of ln(S_T / S0)."""
     if S0 <= 0:
         raise ValueError("S0 must be positive.")
@@ -69,7 +71,7 @@ def gbm_terminal_mean(S0: float, drift: float, T: float) -> float:
     """E[S_T] = S0 * exp(drift * T) (the sigma^2/2 terms cancel exactly)."""
     return S0 * math.exp(drift * T)
 
-def gbm_quantile(S0: float, drift: float, sigma: float, t, q: float):
+def gbm_quantile(S0: float, drift: float, sigma: float, t: ArrayLike, q: float) -> np.ndarray:
     """The q-quantile of S_t under GBM, for a time t or an array of times.
 
     S_t = S0 exp((drift - sigma^2/2) t + sigma sqrt(t) Z), so the quantile uses z_q = norm.ppf(q).

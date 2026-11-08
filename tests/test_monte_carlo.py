@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from optionlab.payoffs import payoff
-from optionlab.pricing.black_scholes import bs_price, call_price, put_price
+from optionlab.pricing.black_scholes import bs_price, call_price
 from optionlab.pricing.monte_carlo import mc_price
 from optionlab.simulation.gbm import simulate_terminal_prices
 

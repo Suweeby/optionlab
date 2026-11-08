@@ -11,6 +11,8 @@ from optionlab.simulation.gbm import simulate_gbm, simulate_terminal_prices, tim
 
 @dataclass(frozen=True)
 class Scenario:
+    """Result of simulate_scenario: sample paths to draw and all terminal prices."""
+
     S0: float
     drift: float
     sigma: float

@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from optionlab.greeks import Greeks, fd_greeks, greeks, mc_delta, to_trader_units
+from optionlab.greeks import fd_greeks, greeks, mc_delta, to_trader_units
 from optionlab.pricing.black_scholes import bs_price
 
 ANCHOR = dict(S=100, K=100, r=0.05, sigma=0.2, T=1.0)
@@ -44,7 +44,7 @@ def test_analytic_greeks_match_finite_differences(params, option_type):
 @pytest.mark.parametrize("params", CASES)
 def test_put_call_relationships(params):
     c, p = greeks(**params, option_type="call"), greeks(**params, option_type="put")
-    S, K, r, T = params["S"], params["K"], params["r"], params["T"]
+    K, r, T = params["K"], params["r"], params["T"]
     pv_K = K * math.exp(-r * T)
     assert c.delta - p.delta == pytest.approx(1.0)
     assert c.gamma == pytest.approx(p.gamma)

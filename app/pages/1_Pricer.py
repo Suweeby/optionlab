@@ -3,7 +3,6 @@ import pandas as pd
 import streamlit as st
 from optionlab.greeks import greeks, to_trader_units
 from optionlab.payoffs import moneyness
-from optionlab.payoffs import moneyness
 from optionlab.pricing.compare import price_all
 
 st.set_page_config(page_title="Pricer · OptionLab", page_icon="📈", layout="wide")
@@ -72,7 +71,7 @@ try:
                            int(seed), antithetic)
     status = moneyness(S, K, option_type)
     greek = to_trader_units(greeks(S, K, r, sigma, T, option_type))
-        
+
 except ValueError as exc:
     st.error(f"Could not price this option: {exc}")
     st.stop()

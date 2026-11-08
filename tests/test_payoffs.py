@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 from optionlab.payoffs import call_payoff, moneyness, payoff, put_payoff
 
-from optionlab.payoffs import call_payoff, payoff, put_payoff
 
 
 def test_call_payoff_values():

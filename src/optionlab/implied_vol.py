@@ -19,6 +19,8 @@ from optionlab.pricing.black_scholes import _validate, bs_price
 
 @dataclass(frozen=True)
 class IVResult:
+    """An implied volatility with how it was found."""
+
     vol: float          # the implied volatility
     iterations: int     # iterations used by the method that produced the answer
     method: str         # "newton" or "bisection"

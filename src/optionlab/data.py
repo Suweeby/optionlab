@@ -34,6 +34,8 @@ class TickerNotFoundError(DataUnavailableError):
 
 @dataclass(frozen=True)
 class PriceData:
+    """Adjusted close prices for one ticker, plus where they came from."""
+
     ticker: str
     prices: pd.Series        # adjusted close, ascending DatetimeIndex
     source: str              # "network", "cache", "stale-cache" or "sample"
@@ -41,6 +43,7 @@ class PriceData:
 
     @property
     def is_real(self) -> bool:
+        """False for synthetic sample data, True for anything that came from the market."""
         return self.source != "sample"
 
 def resolve_cache_dir(cache_dir: Path | str | None = None) -> Path:
@@ -58,7 +61,7 @@ def normalize_ticker(ticker: str) -> str:
     return cleaned
 
 
-def clean_prices(raw) -> pd.Series:
+def clean_prices(raw: pd.DataFrame | pd.Series) -> pd.Series:
     """Turn a raw download (DataFrame or Series) into a clean adjusted-close Series.
 
     Picks 'Adj Close' or 'Close', drops missing and non-positive prices, removes

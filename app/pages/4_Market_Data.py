@@ -1,7 +1,5 @@
 """Market Data page: historical volatility, model prices vs real option quotes, implied volatility."""
-from datetime import date
 
-import numpy as np
 import plotly.graph_objects as go
 import streamlit as st
 

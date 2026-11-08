@@ -18,6 +18,8 @@ from optionlab.simulation.gbm import simulate_terminal_prices
 
 @dataclass(frozen=True)
 class MCResult:
+    """A Monte Carlo price estimate with its uncertainty."""
+
     price: float        # Monte Carlo estimate of the option price
     std_error: float    # standard error of that estimate
     ci_low: float       # lower end of the confidence interval

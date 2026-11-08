@@ -1,6 +1,8 @@
 """Convergence studies: how close do the approximations get to Black-Scholes?"""
 from __future__ import annotations
 
+from collections.abc import Iterable
+
 import numpy as np
 import pandas as pd
 
@@ -19,7 +21,7 @@ def binomial_convergence(
     sigma: float,
     T: float,
     option_type: str = "call",
-    n_values=DEFAULT_N_VALUES,
+    n_values: Iterable[int] = DEFAULT_N_VALUES,
 ) -> pd.DataFrame:
     """Binomial price for each n, compared with the Black-Scholes price.
 
@@ -48,7 +50,7 @@ def monte_carlo_convergence(
     sigma: float,
     T: float,
     option_type: str = "call",
-    path_counts=DEFAULT_PATH_COUNTS,
+    path_counts: Iterable[int] = DEFAULT_PATH_COUNTS,
     replications: int = 20,
     antithetic: bool = False,
     seed: int = 42,
@@ -90,7 +92,7 @@ def monte_carlo_single_runs(
     sigma: float,
     T: float,
     option_type: str = "call",
-    path_counts=DEFAULT_PATH_COUNTS,
+    path_counts: Iterable[int] = DEFAULT_PATH_COUNTS,
     antithetic: bool = False,
     seed: int = 42,
     confidence: float = 0.95,
