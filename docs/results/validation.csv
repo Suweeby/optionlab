@@ -1,0 +1,32 @@
+area,check,expected,observed,criterion,status
+Black-Scholes,"call, S=K=100, r=5%, sigma=20%, T=1",10.4506,10.450583572185565,abs error < 1e-4,PASS
+Black-Scholes,"put, same inputs",5.5735,5.573526022256971,abs error < 1e-4,PASS
+Black-Scholes,put-call parity C - P = S - K e^(-rT),4.877057549928594,4.877057549928594,abs error < 1e-10,PASS
+Black-Scholes,T -> 0: call tends to intrinsic value,10.0,10.000000005000004,abs error < 1e-4,PASS
+Black-Scholes,sigma -> 0: call tends to discounted forward payoff,14.389351794935735,14.389351794935735,abs error < 1e-6,PASS
+Black-Scholes,deep in the money: call ~ S - K e^(-rT),204.8770575499286,204.8770575757042,abs error < 1e-6,PASS
+Black-Scholes,deep out of the money: call ~ 0,0.0,3.416503531317842e-15,abs error < 1e-6,PASS
+Black-Scholes,"negative S, K, sigma or T raise ValueError",all raise,all raise,every case raises,PASS
+Binomial,put-call parity inside the tree (n=500),4.877057549928594,4.877057549930766,abs error < 1e-9,PASS
+Binomial,converges to Black-Scholes (n=2000),0.0,-0.000999796727622737,abs error < 3/n,PASS
+Binomial,error shrinks like 1/n (10x steps -> 10x smaller),10.0,9.988609835878167,ratio within 25% of 10,PASS
+Monte Carlo,"price within 3 standard errors of Black-Scholes (N=10,000)",10.450583572185565,10.345182037175292,|z| < 3 (z = -0.71),PASS
+Monte Carlo,"price within 3 standard errors of Black-Scholes (N=100,000)",10.450583572185565,10.426874625527162,|z| < 3 (z = -0.51),PASS
+Monte Carlo,"price within 3 standard errors of Black-Scholes (N=1,000,000)",10.450583572185565,10.457428262929497,|z| < 3 (z = +0.46),PASS
+Monte Carlo,95% intervals contain the true price (300 runs),0.95,0.96,coverage between 0.92 and 0.98,PASS
+Monte Carlo,error shrinks like 1/sqrt(N) (100x paths -> 10x smaller),10.0,9.984524671752592,ratio within 35% of 10,PASS
+Monte Carlo,antithetic variates reduce the standard error,ratio < 1,0.706778520907829,ratio < 0.9,PASS
+Monte Carlo,"put-call parity holds within noise (N=200,000)",4.877057549928594,4.888614825303122,within 4 combined standard errors,PASS
+GBM,mean of ln(S_T/S_0) = (mu - sigma^2/2) T,0.06,0.059954733926774716,within 4 standard errors,PASS
+GBM,variance of ln(S_T/S_0) = sigma^2 T,0.04000000000000001,0.039821365513776186,relative error < 2%,PASS
+GBM,E[S_T] = S_0 e^(mu T),108.32870676749586,108.31416542517378,within 4 standard errors,PASS
+GBM,risk-neutral: discounted E[S_T] = S_0,100.0,100.0595038350094,within 4 standard errors,PASS
+GBM,risk-neutral P(S_T > K) = N(d2),0.46257411156882894,0.463195,within 4 standard errors,PASS
+Volatility,estimator recovers sigma = 30% from 40 years of daily data,0.3,0.2979380440630523,abs error < 0.01,PASS
+Greeks,"analytic Greeks match finite differences (5 Greeks, call and put)",0.0,2.3679908553668332e-08,max relative difference < 1e-4,PASS
+Greeks,delta(call) - delta(put) = 1,1.0,1.0,abs error < 1e-12,PASS
+Implied volatility,"round trip: price a call at sigma=0.25, solve back",0.25,0.24999999999999983,abs error < 1e-8,PASS
+Implied volatility,"round trip: price a put at sigma=0.25, solve back",0.25,0.24999999999999997,abs error < 1e-8,PASS
+Implied volatility,Newton-Raphson converges in a few steps at the money,<= 6,3,iterations <= 6,PASS
+Implied volatility,bisection fallback solves the case where Newton cannot start,0.8,0.8000000002266026,"abs error < 1e-7, method = bisection",PASS
+Implied volatility,price below the no-arbitrage minimum raises ValueError,raises,raises,raises,PASS
