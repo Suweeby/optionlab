@@ -1,4 +1,3 @@
-"""Convergence studies: how close do the approximations get to Black-Scholes?"""
 from __future__ import annotations
 
 from collections.abc import Iterable
