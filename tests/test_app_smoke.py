@@ -199,3 +199,96 @@ def test_market_page_rejects_a_bad_ticker(market_env):
     at = AppTest.from_file(str(APP / "pages" / "4_Market_Data.py"), default_timeout=120).run()
     at.text_input(key="mkt_ticker").set_value("../evil").run()
     assert not at.exception and len(at.error) == 1
+
+# ---- Data page (fake yfinance, temporary cache) ------------------------------------
+
+
+def _fake_yf_unknown(*unknown):
+    """Like _fake_yfinance, but the given symbols return no price history (unknown tickers)."""
+    base = _fake_yfinance().Ticker
+
+    class Ticker(base):
+        def __init__(self, symbol):
+            super().__init__(symbol)
+            self.symbol = symbol
+
+        def history(self, start, end, auto_adjust):
+            if self.symbol in unknown:
+                return pd.DataFrame()
+            return super().history(start, end, auto_adjust)
+
+    return types.SimpleNamespace(Ticker=Ticker)
+
+
+GOOD_CSV = ("Date,Adj Close\n" + "\n".join(
+    f"{d:%Y-%m-%d},{100 + i}" for i, d in enumerate(pd.bdate_range("2026-01-02", periods=40)))).encode()
+
+
+def _data_page() -> AppTest:
+    return AppTest.from_file(str(APP / "pages" / "0_Data.py"), default_timeout=120).run()
+
+
+def _download(at: AppTest, extra: str = "") -> AppTest:
+    at.text_input(key="data_extra").set_value(extra)
+    return at.button(key="data_download").click().run()
+
+
+def test_data_page_with_an_empty_cache(market_env):
+    market_env.setitem(sys.modules, "yfinance", _fake_yfinance())
+    at = _data_page()
+    assert not at.exception and len(at.error) == 0
+    assert any("Nothing is cached yet" in i.value for i in at.info)
+
+
+def test_data_page_downloads_and_shows_table_audit_and_export(market_env):
+    market_env.setitem(sys.modules, "yfinance", _fake_yfinance())
+    at = _download(_data_page(), "msft")
+    assert not at.exception and len(at.error) == 0
+    assert len(at.success) == 2                                         # AAPL (preset) and MSFT
+    assert at.selectbox(key="data_inspect").options == ["AAPL", "MSFT"]
+    assert len(at.dataframe) == 2                                       # cache table + audit table
+    assert any("Data quality audit" in m.value for m in at.markdown)
+    assert len(at.get("download_button")) == 1
+    at.button(key="data_use").click().run()
+    assert at.session_state["selected_ticker"] == "AAPL"
+    assert at.session_state["selected_is_upload"] is False
+
+
+def test_data_page_unknown_ticker_does_not_block_the_others(market_env):
+    market_env.setitem(sys.modules, "yfinance", _fake_yf_unknown("ZZZZ"))
+    at = _download(_data_page(), "ZZZZ")
+    assert not at.exception
+    assert len(at.success) == 1 and len(at.error) == 1
+    assert "ZZZZ" in at.error[0].value and "Check the ticker symbol" in at.error[0].value
+
+
+def test_data_page_offline_shows_errors_not_a_crash(market_env):
+    market_env.setitem(sys.modules, "yfinance", _fake_yfinance(fail=True))
+    at = _download(_data_page())
+    assert not at.exception
+    assert len(at.error) == 1 and "Download failed" in at.error[0].value
+    assert any("Nothing is cached yet" in i.value for i in at.info)
+
+
+def test_data_page_rejects_an_invalid_ticker_but_downloads_the_rest(market_env):
+    market_env.setitem(sys.modules, "yfinance", _fake_yfinance())
+    at = _download(_data_page(), "../evil")
+    assert not at.exception
+    assert len(at.error) == 1 and "not a valid ticker" in at.error[0].value
+    assert len(at.success) == 1
+
+
+def test_data_page_accepts_a_good_upload(market_env):
+    market_env.setitem(sys.modules, "yfinance", _fake_yfinance())
+    at = _data_page()
+    at.file_uploader(key="data_upload").set_value(("prices.csv", GOOD_CSV, "text/csv")).run()
+    assert not at.exception and len(at.error) == 0
+    assert "MYDATA (upload)" in at.selectbox(key="data_inspect").options
+
+
+def test_data_page_explains_a_bad_upload(market_env):
+    market_env.setitem(sys.modules, "yfinance", _fake_yfinance())
+    at = _data_page()
+    at.file_uploader(key="data_upload").set_value(("bad.csv", b"Date,Open\n2026-01-02,1\n", "text/csv")).run()
+    assert not at.exception
+    assert len(at.error) == 1 and "Could not use this file" in at.error[0].value

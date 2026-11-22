@@ -17,9 +17,11 @@ against each other:
 
 Use the page list in the sidebar:
 
+- **Data**: download, refresh, inspect, audit, upload and export price data
 - **Pricer**: the three prices side by side, plus the Greeks
 - **Simulator**: possible futures of a stock, in real-world or risk-neutral mode
 - **Convergence**: how the tree and Monte Carlo approach Black-Scholes
+- **Market Data**: the model next to real option quotes, and implied volatility
 
 **What this is not:** a stock-price predictor, a trading signal or financial advice.
 It shows what a standard pricing model implies for the inputs you choose.

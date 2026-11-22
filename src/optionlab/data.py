@@ -41,7 +41,8 @@ __all__ = [
     "DEFAULT_CACHE_DIR", "INDEX_FILE", "LIST_COLUMNS", "REAL_SOURCES",
     "DataUnavailableError", "TickerNotFoundError", "PriceData",
     "resolve_cache_dir", "normalize_ticker", "clean_prices", "clean_prices_with_report",
-    "sample_prices", "load_prices", "refresh_prices", "list_cached", "require_min_history",
+    "sample_prices", "load_prices", "refresh_prices", "load_cached_prices", "list_cached",
+    "require_min_history",
     "load_prices_from_csv", "prices_to_csv",
 ]
 
@@ -455,6 +456,28 @@ def refresh_prices(
     entry = _read_index(folder).get(ticker, {}) if cached is not None else {}
     return _download(ticker, start_date, end_date, today, folder, cached, entry,
                      fetcher or _yfinance_fetcher)
+
+
+def load_cached_prices(ticker: str, cache_dir: Path | str | None = None,
+                       max_age_hours: float = 24.0) -> PriceData:
+    """A ticker's cached prices, read without any download (for inspecting the cache).
+
+    Source is "cache" if the file is younger than max_age_hours, else "stale-cache".
+    Raises DataUnavailableError if nothing usable is cached.
+    """
+    ticker = normalize_ticker(ticker)
+    folder = resolve_cache_dir(cache_dir)
+    path = _price_path(folder, ticker)
+    cached = _read_cache(path) if path.exists() else None
+    if cached is None:
+        raise DataUnavailableError(f"No usable cached prices for '{ticker}'. Download them first.")
+    entry = _read_index(folder).get(ticker, {})
+    if _is_fresh(path, max_age_hours):
+        return PriceData(ticker, cached, "cache", "Loaded from the local cache.", entry.get("currency"))
+    refreshed = entry.get("last_refresh_utc") or "at an unknown time"
+    return PriceData(ticker, cached, "stale-cache",
+                     f"Cached data, last refreshed {refreshed} (UTC); it may be out of date.",
+                     entry.get("currency"))
 
 
 def list_cached(cache_dir: Path | str | None = None) -> pd.DataFrame:

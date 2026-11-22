@@ -518,3 +518,29 @@ def test_export_round_trips_through_upload(tmp_path):
 def test_export_refuses_empty_input():
     with pytest.raises(ValueError, match="Nothing to export"):
         prices_to_csv(pd.Series(dtype=float))
+
+
+# ---------------------------------------------------------------- load_cached_prices (Phase 2)
+from optionlab.data import load_cached_prices  # noqa: E402
+
+
+def test_load_cached_prices_never_downloads(tmp_path):
+    with pytest.raises(DataUnavailableError, match="Download them first"):
+        load_cached_prices("AAPL", cache_dir=tmp_path)
+    fetch = FakeFetcher()
+    original = load_prices("AAPL", cache_dir=tmp_path, fetcher=fetch, today=TODAY)
+    cached = load_cached_prices("aapl", cache_dir=tmp_path)
+    assert cached.source == "cache" and len(fetch.calls) == 1
+    assert np.allclose(cached.prices.to_numpy(), original.prices.to_numpy())
+
+
+def test_load_cached_prices_labels_old_files_as_stale(tmp_path):
+    load_prices("AAPL", cache_dir=tmp_path, fetcher=FakeFetcher(), today=TODAY)
+    _age_file(tmp_path / "AAPL.csv", hours=72)
+    data = load_cached_prices("AAPL", cache_dir=tmp_path)
+    assert data.source == "stale-cache" and data.is_real and "last refreshed" in data.note
+
+
+def test_load_cached_prices_rejects_bad_tickers(tmp_path):
+    with pytest.raises(ValueError):
+        load_cached_prices("../evil", cache_dir=tmp_path)
