@@ -292,3 +292,101 @@ def test_data_page_explains_a_bad_upload(market_env):
     at.file_uploader(key="data_upload").set_value(("bad.csv", b"Date,Open\n2026-01-02,1\n", "text/csv")).run()
     assert not at.exception
     assert len(at.error) == 1 and "Could not use this file" in at.error[0].value
+
+# ---- Pages wired to the selected dataset (Phase 3) -------------------------------------
+
+import io  # noqa: E402
+
+from optionlab.data import load_prices_from_csv  # noqa: E402
+
+
+def _with_upload(page: str) -> AppTest:
+    """A page whose session already holds an uploaded dataset (40 prices, last one 139) as the selection."""
+    at = AppTest.from_file(str(APP / "pages" / page), default_timeout=120)
+    at.session_state["uploads"] = {"MYDATA": load_prices_from_csv(io.BytesIO(GOOD_CSV), "MYDATA")}
+    at.session_state["selected_ticker"] = "MYDATA"
+    at.session_state["selected_is_upload"] = True
+    return at.run()
+
+
+def _fake_yf_no_options():
+    """Prices exist, but no options are listed (like most non-US stocks)."""
+    base = _fake_yfinance().Ticker
+
+    class Ticker(base):
+        def __init__(self, symbol):
+            super().__init__(symbol)
+            self.options = ()
+
+    return types.SimpleNamespace(Ticker=Ticker)
+
+
+def test_pricer_market_toggle_fills_spot_and_volatility(market_env):
+    market_env.setitem(sys.modules, "yfinance", _fake_yfinance())
+    at = _pricer()
+    assert at.toggle(key="pricer_use_market").label == "Use market data for AAPL"
+    at.toggle(key="pricer_use_market").set_value(True).run()
+    assert not at.exception and len(at.error) == 0
+    assert any("S = 150" in m.value for m in at.markdown)            # fake market spot price
+    assert any("not a forecast" in i.value for i in at.info)
+    assert len(at.metric) == 8 and at.metric[0].value != "10.4506"
+
+
+def test_pricer_market_toggle_refuses_synthetic_data(market_env):
+    market_env.setitem(sys.modules, "yfinance", _fake_yfinance(fail=True))
+    at = _pricer()
+    at.toggle(key="pricer_use_market").set_value(True).run()
+    assert not at.exception
+    assert len(at.error) == 1 and "SYNTHETIC" in at.error[0].value
+    assert at.metric[0].value == "10.4506"                          # typed inputs still used
+
+
+def test_pricer_uses_an_uploaded_dataset(market_env):
+    at = _with_upload("1_Pricer.py")
+    assert at.toggle(key="pricer_use_market").label == "Use market data for MYDATA (upload)"
+    at.toggle(key="pricer_use_market").set_value(True).run()
+    assert not at.exception and len(at.error) == 0
+    assert any("S = 139" in m.value for m in at.markdown)
+
+
+def test_simulator_historical_drift_comes_with_its_standard_error(market_env):
+    market_env.setitem(sys.modules, "yfinance", _fake_yfinance())
+    at = _page("2_Simulator.py")
+    at.toggle(key="sim_use_market").set_value(True).run()
+    at.radio(key="sim_mu_source").set_value("Historical estimate (noisy)").run()
+    assert not at.exception and len(at.error) == 0
+    assert any("±" in w.value and "not a forecast" in w.value for w in at.warning)
+
+
+def test_simulator_historical_drift_needs_a_year_of_data(market_env):
+    at = _with_upload("2_Simulator.py")                              # only 39 returns
+    at.toggle(key="sim_use_market").set_value(True).run()
+    at.radio(key="sim_mu_source").set_value("Historical estimate (noisy)").run()
+    assert not at.exception
+    assert len(at.error) == 1 and "Not enough history for a drift estimate" in at.error[0].value
+    assert len(at.metric) > 0                                        # still simulates (assumed mu)
+
+
+def test_market_page_without_options_still_shows_spot_and_volatility(market_env):
+    market_env.setitem(sys.modules, "yfinance", _fake_yf_no_options())
+    at = _market()
+    assert not at.exception and len(at.error) == 0
+    assert [m.label for m in at.metric][:2] == ["Spot price (last close)", "Historical volatility"]
+    assert any("No option quotes" in w.value for w in at.warning)
+
+
+def test_market_page_starts_at_the_selected_ticker(market_env):
+    market_env.setitem(sys.modules, "yfinance", _fake_yfinance())
+    at = AppTest.from_file(str(APP / "pages" / "4_Market_Data.py"), default_timeout=120)
+    at.session_state["selected_ticker"] = "MSFT"
+    at.run()
+    assert not at.exception and len(at.error) == 0
+    assert at.text_input(key="mkt_ticker").value == "MSFT"
+
+
+def test_market_page_explains_why_an_upload_is_not_used(market_env):
+    market_env.setitem(sys.modules, "yfinance", _fake_yfinance())
+    at = _with_upload("4_Market_Data.py")
+    assert not at.exception and len(at.error) == 0
+    assert at.text_input(key="mkt_ticker").value == "AAPL"
+    assert any("cannot be compared" in i.value for i in at.info)

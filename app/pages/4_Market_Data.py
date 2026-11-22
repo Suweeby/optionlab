@@ -1,24 +1,25 @@
 """Market Data page: historical volatility, model prices vs real option quotes, implied volatility."""
+import sys
+from pathlib import Path
 
 import plotly.graph_objects as go
 import streamlit as st
 
-from optionlab.data import DataUnavailableError, TickerNotFoundError, load_prices, normalize_ticker
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))     # app/, for ticker_select
+
+from optionlab.config import DEFAULT_RISK_FREE_RATE, DEFAULT_TICKER, MIN_VOL_RETURNS, PRESET_TICKERS
+from optionlab.data import (
+    DataUnavailableError, TickerNotFoundError, normalize_ticker, require_min_history,
+)
 from optionlab.market import (
     atm_implied_vol, clean_quotes, compare_quotes, list_expiries, load_option_chain, only_otm,
-    time_to_expiry,
+    require_real_prices, time_to_expiry,
 )
 from optionlab.volatility import ewma_volatility, historical_volatility
+from ticker_select import VOL_WINDOWS, cached_prices, current_selection, purge_chains_once
 
 st.set_page_config(page_title="Market Data · OptionLab", page_icon="📈", layout="wide")
-
-WINDOWS = {"21 days (1 month)": 21, "63 days (3 months)": 63, "126 days (6 months)": 126,
-           "252 days (1 year)": 252, "All available": None}
-
-
-@st.cache_data(ttl=900, show_spinner="Loading prices...")
-def cached_prices(ticker):
-    return load_prices(ticker, lookback_days=730)
+purge_chains_once()
 
 
 @st.cache_data(ttl=900, show_spinner="Loading option expiries...")
@@ -32,37 +33,71 @@ def cached_chain(ticker, expiry):
 
 
 # ---------------------------------------------------------------- sidebar inputs
+selection = current_selection()
+default_ticker = DEFAULT_TICKER if selection.is_upload else selection.label
 with st.sidebar:
     st.header("Inputs")
-    ticker_in = st.text_input("Ticker", value="AAPL", key="mkt_ticker",
-                              help="A Yahoo Finance symbol, e.g. AAPL, MSFT, ^GSPC or RELIANCE.NS.")
-    window_label = st.selectbox("Volatility lookback", list(WINDOWS), index=3, key="mkt_window",
+    ticker_in = st.text_input(
+        "Ticker", value=default_ticker, key="mkt_ticker",
+        help=f"A Yahoo Finance symbol, e.g. {', '.join(PRESET_TICKERS[:3])}, ^GSPC or RELIANCE.NS. "
+             "Starts at the dataset chosen on the Data page.")
+    window_label = st.selectbox("Volatility lookback", list(VOL_WINDOWS), index=3, key="mkt_window",
                                 help="How much history the historical volatility uses. "
                                      "There is no single correct choice.")
-    r_pct = st.number_input("Risk-free rate r (% per year)", value=4.0, step=0.25, format="%.2f",
-                            key="mkt_r", help="Set this to the current short-term interest rate; "
-                                              "the app does not look it up.")
+    r_pct = st.number_input("Risk-free rate r (% per year)", value=DEFAULT_RISK_FREE_RATE * 100,
+                            step=0.25, format="%.2f", key="mkt_r",
+                            help="Set this to the current short-term interest rate; "
+                                 "the app does not look it up.")
     option_type = st.radio("Option type", ["call", "put"], key="mkt_type", horizontal=True)
     otm_only = st.checkbox("Out-of-the-money options only", value=True, key="mkt_otm",
                            help="Implied volatility is most reliable for out-of-the-money options.")
 
-# ---------------------------------------------------------------- load prices and expiries
+# ---------------------------------------------------------------- prices (real data only)
 st.title("Market data")
+if selection.is_upload:
+    st.info(f"Your uploaded data ({selection.label}) cannot be compared with live option quotes, so "
+            f"this page starts at {default_ticker}. Type any ticker in the sidebar.")
 try:
     ticker = normalize_ticker(ticker_in)
     pdata = cached_prices(ticker)
-    expiries = cached_expiries(ticker)
+    require_real_prices(pdata)                       # no SYNTHETIC data, no uploads
+    require_min_history(pdata.prices, MIN_VOL_RETURNS, "a volatility estimate")
 except TickerNotFoundError as exc:
     st.error(f"{exc}")
     st.stop()
-except (DataUnavailableError, ValueError) as exc:
+except DataUnavailableError as exc:
     st.error(f"Could not load market data: {exc}")
     st.stop()
+except ValueError as exc:
+    st.error(f"{exc}")
+    st.stop()
 
-if not pdata.is_real:
-    st.error("Only SYNTHETIC sample prices are available (the data source could not be reached). "
-             "This page compares the model with real option quotes, so it needs real data. "
-             "Check your internet connection and try again.")
+if pdata.source == "stale-cache":
+    st.warning(f"Prices: {pdata.note}")
+
+prices = pdata.prices
+spot = float(prices.iloc[-1])
+spot_date = prices.index[-1].date()
+n_returns = len(prices) - 1
+window = VOL_WINDOWS[window_label]
+used_window = None if (window is None or window > n_returns) else window
+used_label = window_label.lower() if used_window else f"all {n_returns} available returns"
+hist_vol = historical_volatility(prices, window=used_window)
+ewma_vol = float(ewma_volatility(prices).iloc[-1])
+
+c1, c2, c3 = st.columns(3)
+c1.metric("Spot price (last close)", f"{spot:,.2f}", help=f"Adjusted close of {spot_date}.")
+c2.metric("Historical volatility", f"{hist_vol * 100:.1f}%",
+          help=f"Annualized, from {used_label} of log returns.")
+c3.metric("EWMA volatility (λ = 0.94)", f"{ewma_vol * 100:.1f}%")
+
+# ---------------------------------------------------------------- option quotes (if any are listed)
+st.subheader(f"{ticker} options versus the model")
+try:
+    expiries = cached_expiries(ticker)
+except DataUnavailableError as exc:
+    st.warning(f"No option quotes to compare with: {exc} The spot price and volatility above are "
+               "still valid. Listed options exist mainly for larger US stocks, ETFs and some indices.")
     st.stop()
 
 with st.sidebar:
@@ -71,15 +106,6 @@ with st.sidebar:
         st.cache_data.clear()
         st.rerun()
 
-prices = pdata.prices
-spot = float(prices.iloc[-1])
-spot_date = prices.index[-1].date()
-window = WINDOWS[window_label]
-n_returns = len(prices) - 1
-used_window = None if (window is None or window > n_returns) else window
-hist_vol = historical_volatility(prices, window=used_window)
-ewma_vol = float(ewma_volatility(prices).iloc[-1])
-
 try:
     chain = cached_chain(ticker, expiry)
     T = time_to_expiry(expiry)
@@ -87,8 +113,6 @@ except (DataUnavailableError, ValueError) as exc:
     st.error(f"Could not load option quotes: {exc}")
     st.stop()
 
-if pdata.source == "stale-cache":
-    st.warning(f"Prices: {pdata.note}")
 if chain.source == "stale-cache":
     st.warning(f"Option quotes: {chain.note}")
 if T < 7 / 365:
@@ -106,18 +130,12 @@ if quotes.empty:
 compared = compare_quotes(quotes, spot, r, T, hist_vol)
 atm = atm_implied_vol(compared, spot)
 
-# ---------------------------------------------------------------- headline numbers
-c1, c2, c3, c4 = st.columns(4)
-c1.metric("Spot price (last close)", f"{spot:,.2f}", help=f"Close of {spot_date}.")
-c2.metric("Historical volatility", f"{hist_vol * 100:.1f}%",
-          help=f"Annualized, from the {window_label.lower()} of log returns.")
-c3.metric("EWMA volatility (λ = 0.94)", f"{ewma_vol * 100:.1f}%")
 if atm is not None:
-    c4.metric("Implied volatility near the money", f"{atm[1] * 100:.1f}%",
+    st.metric("Implied volatility near the money", f"{atm[1] * 100:.1f}%",
               delta=f"{(atm[1] - hist_vol) * 100:+.1f} pts vs historical", delta_color="off",
               help=f"From the quote with strike {atm[0]:g}.")
 else:
-    c4.metric("Implied volatility near the money", "n/a")
+    st.metric("Implied volatility near the money", "n/a")
 
 finite = compared["implied_vol"].dropna()
 if len(finite):
@@ -200,5 +218,6 @@ with st.expander("Assumptions and limitations"):
   match the moment the option quotes were taken.
 - The risk-free rate is **your input**. Time to expiry is counted in calendar days / 365.
 - Mid-prices are not tradable prices. This page is an educational comparison, not advice.
+- Uploaded files and SYNTHETIC sample data are never used here: only downloaded prices.
 """
     )

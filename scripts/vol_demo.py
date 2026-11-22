@@ -1,19 +1,20 @@
 """Download prices for a ticker and compare volatility estimators.
 
-Usage:  python scripts/vol_demo.py AAPL
+Usage:  python scripts/vol_demo.py [TICKER]      (default: config.DEFAULT_TICKER)
 """
 import sys
 
 import plotly.graph_objects as go
 
+from optionlab.config import DEFAULT_LOOKBACK_DAYS, DEFAULT_TICKER
 from optionlab.data import load_prices
 from optionlab.volatility import (
     annualized_drift, drift_standard_error, ewma_volatility, rolling_volatility,
     volatility_by_lookback,
 )
 
-ticker = sys.argv[1] if len(sys.argv) > 1 else "AAPL"
-data = load_prices(ticker, lookback_days=730)
+ticker = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_TICKER
+data = load_prices(ticker, lookback_days=DEFAULT_LOOKBACK_DAYS)
 prices = data.prices
 
 print(f"{data.ticker}: {len(prices)} prices, {prices.index[0].date()} to {prices.index[-1].date()}")

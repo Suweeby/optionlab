@@ -269,6 +269,19 @@ def test_purge_grace_period_and_missing_folder(tmp_path):
         purge_expired_chains(tmp_path, today=PURGE_TODAY, grace_days=-1)
 
 
+def test_require_real_prices_allows_only_downloaded_data():
+    from optionlab.data import PriceData
+    from optionlab.market import require_real_prices
+
+    series = pd.Series([1.0, 2.0], index=pd.bdate_range("2026-01-05", periods=2))
+    for source in ("network", "cache", "stale-cache"):
+        require_real_prices(PriceData("X", series, source))            # no error
+    with pytest.raises(ValueError, match="SYNTHETIC"):
+        require_real_prices(PriceData("X", series, "sample"))
+    with pytest.raises(ValueError, match="uploaded file"):
+        require_real_prices(PriceData("MYDATA", series, "upload"))
+
+
 def test_purge_never_touches_price_caches(tmp_path):
     (tmp_path / "AAPL.csv").write_text("date,adj_close\n")
     _chain_files(tmp_path, ["AAPL_2020-01-01.csv"])

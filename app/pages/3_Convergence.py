@@ -7,6 +7,7 @@ from plotly.subplots import make_subplots
 from optionlab.convergence import (
     binomial_convergence, monte_carlo_convergence, monte_carlo_single_runs,
 )
+from optionlab.config import DEFAULT_RISK_FREE_RATE
 from optionlab.pricing.black_scholes import bs_price
 
 st.set_page_config(page_title="Convergence · OptionLab", page_icon="📈", layout="wide")
@@ -39,7 +40,8 @@ with st.sidebar:
     option_type = st.radio("Option type", ["call", "put"], key="conv_type", horizontal=True)
     S = st.number_input("Spot price S", min_value=0.01, value=100.0, step=1.0, key="conv_S")
     K = st.number_input("Strike price K", min_value=0.01, value=100.0, step=1.0, key="conv_K")
-    r_pct = st.number_input("Risk-free rate r (% per year)", value=5.0, step=0.25, format="%.2f",
+    r_pct = st.number_input("Risk-free rate r (% per year)", value=DEFAULT_RISK_FREE_RATE * 100,
+                            step=0.25, format="%.2f",
                             key="conv_r")
     sigma_pct = st.number_input("Volatility σ (% per year)", min_value=0.1, value=20.0, step=1.0,
                                 key="conv_sigma")

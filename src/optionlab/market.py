@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 
 from optionlab.config import EXPIRED_CHAIN_GRACE_DAYS
-from optionlab.data import DataUnavailableError, normalize_ticker, resolve_cache_dir
+from optionlab.data import DataUnavailableError, PriceData, normalize_ticker, resolve_cache_dir
 from optionlab.implied_vol import implied_vol
 from optionlab.pricing.black_scholes import bs_price
 
@@ -258,6 +258,23 @@ def only_otm(df: pd.DataFrame, spot: float) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------- comparison with the model
+def require_real_prices(data: PriceData) -> None:
+    """Refuse prices that must not be compared with real option quotes.
+
+    Only downloaded market data (network, cache, stale-cache) is allowed. SYNTHETIC sample
+    data and user uploads raise ValueError with a reason the page can show as it is.
+    """
+    if data.is_real:
+        return
+    if data.is_user_supplied:
+        raise ValueError(f"'{data.ticker}' is an uploaded file. Comparing it with live option "
+                         "quotes would mix an unverified price series with real market data, so "
+                         "this comparison only uses downloaded prices.")
+    raise ValueError("Only SYNTHETIC sample prices are available (the data source could not be "
+                     "reached). This comparison needs real market data. Check your internet "
+                     "connection and try again.")
+
+
 def compare_quotes(quotes: pd.DataFrame, spot: float, r: float, T: float, hist_vol: float) -> pd.DataFrame:
     """Model price (Black-Scholes at the historical volatility) and implied volatility for each quote."""
     if not (math.isfinite(spot) and spot > 0):

@@ -1,5 +1,7 @@
 """Simulator page: possible futures of a stock under geometric Brownian motion."""
 import math
+import sys
+from pathlib import Path
 
 import numpy as np
 import plotly.graph_objects as go
@@ -7,7 +9,12 @@ import pandas as pd
 import streamlit as st
 from scipy.stats import lognorm, norm
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))     # app/, for ticker_select
+
+from optionlab.config import DEFAULT_RISK_FREE_RATE
 from optionlab.pricing.black_scholes import d2
+from optionlab.volatility import annualized_drift, drift_standard_error
+from ticker_select import market_toggle
 from optionlab.simulation.scenario import simulate_scenario
 from optionlab.simulation.stats import (
     gbm_log_return_theory, gbm_quantile, gbm_terminal_mean, log_return_stats,
@@ -31,21 +38,32 @@ with st.sidebar:
              "Risk-neutral: the artificial world used for pricing options.",
     )
     real_world = mode.startswith("Real")
+    market = market_toggle("sim")             # None = use the typed S0 and sigma below
     S0 = st.number_input("Starting price S₀", min_value=0.01, value=100.0, step=1.0, key="sim_S0",
-                         help="The stock's price today.")
+                         help="The stock's price today.", disabled=market is not None)
     K = st.number_input("Strike K (marker only)", min_value=0.01, value=100.0, step=1.0, key="sim_K",
                         help="Drawn as a line on the charts; used for P(S_T > K).")
+    historical_mu = False
     if real_world:
+        if market is not None:
+            historical_mu = st.radio(
+                "Where μ comes from", ["Assumed (you choose)", "Historical estimate (noisy)"],
+                key="sim_mu_source",
+                help="The historical estimate is the average past growth. Its error is huge "
+                     "(about σ / √years), so it is shown with its standard error.",
+            ).startswith("Historical")
         drift_pct = st.number_input(
             "Expected return μ (% per year)", value=8.0, step=0.5, format="%.2f", key="sim_mu_pct",
             help="The average yearly growth you assume. Past data estimates it very poorly, so "
-                 "treat it as an assumption, not a forecast.")
+                 "treat it as an assumption, not a forecast.", disabled=historical_mu)
     else:
         drift_pct = st.number_input(
-            "Risk-free rate r (% per year)", value=5.0, step=0.25, format="%.2f", key="sim_r_pct",
+            "Risk-free rate r (% per year)", value=DEFAULT_RISK_FREE_RATE * 100, step=0.25,
+            format="%.2f", key="sim_r_pct",
             help="In risk-neutral mode the stock grows at the risk-free rate.")
     sigma_pct = st.number_input("Volatility σ (% per year)", min_value=0.1, value=20.0, step=1.0,
-                                key="sim_sigma_pct", help="How much the price fluctuates in a year.")
+                                key="sim_sigma_pct", help="How much the price fluctuates in a year.",
+                                disabled=market is not None)
     T = st.number_input("Horizon T (years)", min_value=0.01, value=1.0, step=0.25, key="sim_T")
     st.divider()
     n_steps = st.number_input("Time steps per path", min_value=1, max_value=1000, value=252,
@@ -68,6 +86,23 @@ else:
                "PRICE options. Its probabilities are pricing weights, not predictions of what will happen.")
 
 drift, sigma = drift_pct / 100.0, sigma_pct / 100.0
+if market is not None:
+    S0, sigma = market.spot, market.sigma
+    st.info(f"Starting price and volatility come from market data for {market.label}: "
+            f"S₀ = {S0:,.2f} (adjusted close of {market.spot_date}), σ = {sigma:.1%} "
+            f"({market.window_used}).")
+    if historical_mu:
+        try:
+            mu_hat = annualized_drift(market.data.prices)
+            mu_se = drift_standard_error(market.data.prices)
+        except ValueError as exc:
+            st.error(f"Historical μ not used: {exc} Using the assumed μ = {drift:.1%} instead.")
+        else:
+            drift = mu_hat
+            st.warning(f"μ = {mu_hat:.1%} ± {mu_se:.1%} per year (historical estimate ± one standard "
+                       f"error, from {len(market.data.prices) - 1} daily returns). This is a very noisy "
+                       f"estimate from past prices, not a forecast: a rough 95% range is "
+                       f"{mu_hat - 2 * mu_se:.0%} to {mu_hat + 2 * mu_se:.0%}.")
 try:
     sc = cached_scenario(S0, drift, sigma, T, int(n_steps), int(n_paths), int(n_draw), int(seed))
 except ValueError as exc:

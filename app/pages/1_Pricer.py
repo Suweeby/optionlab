@@ -1,9 +1,17 @@
 """Pricer page: Black-Scholes, binomial and Monte Carlo side by side."""
+import sys
+from pathlib import Path
+
 import pandas as pd
 import streamlit as st
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))     # app/, for ticker_select
+
+from optionlab.config import DEFAULT_RISK_FREE_RATE
 from optionlab.greeks import greeks, to_trader_units
 from optionlab.payoffs import moneyness
 from optionlab.pricing.compare import price_all
+from ticker_select import market_toggle
 
 st.set_page_config(page_title="Pricer · OptionLab", page_icon="📈", layout="wide")
 
@@ -20,21 +28,24 @@ with st.sidebar:
         "Option type", ["call", "put"], key="option_type", horizontal=True,
         help="A call pays off if the stock ends ABOVE the strike; a put if it ends BELOW.",
     )
+    market = market_toggle("pricer")          # None = use the typed S and sigma below
     S = st.number_input(
         "Spot price S", min_value=0.01, value=100.0, step=1.0, key="S",
-        help="The stock's current price.",
+        help="The stock's current price.", disabled=market is not None,
     )
     K = st.number_input(
         "Strike price K", min_value=0.01, value=100.0, step=1.0, key="K",
         help="The price at which the option holder may buy (call) or sell (put) at expiry.",
     )
     r_pct = st.number_input(
-        "Risk-free rate r (% per year)", value=5.0, step=0.25, format="%.2f", key="r_pct",
+        "Risk-free rate r (% per year)", value=DEFAULT_RISK_FREE_RATE * 100, step=0.25,
+        format="%.2f", key="r_pct",
         help="Continuously compounded interest rate on a risk-free investment.",
     )
     sigma_pct = st.number_input(
         "Volatility σ (% per year)", min_value=0.1, value=20.0, step=1.0, key="sigma_pct",
         help="How much the stock price typically fluctuates in a year. Higher = riskier.",
+        disabled=market is not None,
     )
     T = st.number_input(
         "Time to expiry T (years)", min_value=0.01, value=1.0, step=0.25, key="T",
@@ -66,6 +77,12 @@ st.caption("European option · three independent methods · "
            "pricing mode: risk-neutral (the simulated stock drifts at r)")
 
 r, sigma = r_pct / 100.0, sigma_pct / 100.0
+if market is not None:
+    S, sigma = market.spot, market.sigma
+    st.info(f"Spot price and volatility come from market data for {market.label}: "
+            f"S = {S:,.2f} (adjusted close of {market.spot_date}), σ = {sigma:.1%} "
+            f"({market.window_used}). Historical volatility looks backward: it is an input choice, "
+            "not a forecast.")
 try:
     res = cached_price_all(S, K, r, sigma, T, option_type, int(n_steps), int(n_paths),
                            int(seed), antithetic)

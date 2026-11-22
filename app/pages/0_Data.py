@@ -1,10 +1,14 @@
 """Data page: download, refresh, inspect, audit, upload and export price data."""
 import io
 import re
+import sys
 from datetime import date, timedelta
+from pathlib import Path
 
 import plotly.graph_objects as go
 import streamlit as st
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))     # app/, for ticker_select
 
 from optionlab.audit.data_audit import audit_price_data, count_statuses
 from optionlab.config import DEFAULT_LOOKBACK_DAYS, DEFAULT_TICKER, PRESET_TICKERS
@@ -12,19 +16,16 @@ from optionlab.data import (
     DataUnavailableError, TickerNotFoundError, list_cached, load_cached_prices,
     load_prices_from_csv, normalize_ticker, prices_to_csv, refresh_prices,
 )
-from optionlab.market import purge_expired_chains
+from ticker_select import (
+    SELECTED_KEY, SELECTED_UPLOAD_KEY, UPLOAD_SUFFIX, UPLOADS_KEY, purge_chains_once,
+)
 
 st.set_page_config(page_title="Data · OptionLab", page_icon="📈", layout="wide")
 
-SELECTED_KEY = "selected_ticker"          # the dataset other pages use (label of a ticker or upload)
-SELECTED_UPLOAD_KEY = "selected_is_upload"
-UPLOADS_KEY = "uploads"                   # {label: PriceData}, this browser session only
 MAX_UPLOAD_MB = 5
-UPLOAD_SUFFIX = " (upload)"
 
 st.session_state.setdefault(UPLOADS_KEY, {})
-if "chains_purged" not in st.session_state:          # housekeeping, once per session
-    st.session_state["chains_purged"] = len(purge_expired_chains())
+purge_chains_once()                                   # housekeeping, once per session
 
 
 def parse_tickers(presets: list[str], extra: str) -> tuple[list[str], list[str]]:
