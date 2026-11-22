@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 data/cache/
 .pytest_cache/
+.hypothesis/
 *.egg-info/
 .vscode/
 .ipynb_checkpoints/

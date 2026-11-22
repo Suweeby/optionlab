@@ -1,3 +1,8 @@
+"""Convergence studies: how the binomial tree and Monte Carlo approach Black-Scholes.
+
+The binomial error shrinks like 1/n (with an odd/even zigzag); the Monte Carlo error
+shrinks like 1/sqrt(N). These tables feed the Convergence page and docs/results.
+"""
 from __future__ import annotations
 
 from collections.abc import Iterable
