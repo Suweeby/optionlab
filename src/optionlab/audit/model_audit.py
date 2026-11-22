@@ -221,9 +221,18 @@ def check_gbm_ks(n_tests: int = 20, seed: int = 42) -> dict:
 
 
 # ---------------------------------------------------------------- all model checks
+def audit_sizes(quick: bool) -> dict[str, int]:
+    """How big each random check is in quick (tests, CI) and full mode."""
+    if quick:
+        return {"invariant_cases": 200, "robustness_seeds": 3, "ks_tests": 20}
+    return {"invariant_cases": 2000, "robustness_seeds": 20, "ks_tests": 100}
+
+
 def run_model_audit(quick: bool = True, seed: int = 42) -> pd.DataFrame:
     """All model checks as one table. quick=True uses smaller sizes (for tests and CI)."""
-    n_cases, n_seeds, n_tests = (200, 3, 20) if quick else (2000, 20, 100)
-    rows = (check_quadrature() + check_textbook_anchor() + check_invariants(n_cases, seed)
-            + [check_seed_robustness(n_seeds), check_gbm_ks(n_tests, seed)])
+    sizes = audit_sizes(quick)
+    rows = (check_quadrature() + check_textbook_anchor()
+            + check_invariants(sizes["invariant_cases"], seed)
+            + [check_seed_robustness(sizes["robustness_seeds"]),
+               check_gbm_ks(sizes["ks_tests"], seed)])
     return pd.DataFrame(rows, columns=COLUMNS)

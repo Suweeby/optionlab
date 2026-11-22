@@ -384,6 +384,55 @@ def test_market_page_starts_at_the_selected_ticker(market_env):
     assert at.text_input(key="mkt_ticker").value == "MSFT"
 
 
+def _audit_page() -> AppTest:
+    return AppTest.from_file(str(APP / "pages" / "5_Audit.py"), default_timeout=180).run()
+
+
+def test_audit_page_before_running():
+    at = _audit_page()
+    assert not at.exception and len(at.error) == 0
+    assert any("Run the quick audit" in i.value for i in at.info)
+    assert len(at.metric) == 0
+
+
+def test_audit_page_runs_the_real_quick_audit():
+    at = _audit_page()
+    at.button(key="audit_run").click().run()
+    assert not at.exception and len(at.error) == 0
+    assert [m.label for m in at.metric] == ["PASS", "WARN", "FAIL"]
+    assert at.metric[2].value == "0"
+    assert len(at.success) == 1 and "passed" in at.success[0].value
+    assert len(at.get("download_button")) == 2
+
+
+def test_audit_page_shows_a_crash_instead_of_crashing(monkeypatch):
+    from optionlab.audit import report as report_module
+
+    def boom(quick):
+        raise RuntimeError("disk on fire")
+    monkeypatch.setattr(report_module, "run_all", boom)
+    at = _audit_page()
+    at.button(key="audit_run").click().run()
+    assert not at.exception
+    assert len(at.error) == 1 and "RuntimeError: disk on fire" in at.error[0].value
+
+
+def test_audit_page_reports_failures(monkeypatch):
+    from optionlab.audit import report as report_module
+    from optionlab.audit.claims import CLAIM_COLUMNS
+    from optionlab.validation import COLUMNS
+
+    table = pd.DataFrame([{"area": "Claims", "check": "a broken claim", "expected": "", "observed": "",
+                           "criterion": "", "status": "FAIL"}], columns=COLUMNS)
+    failing = report_module.AuditReport(table, pd.DataFrame(columns=CLAIM_COLUMNS),
+                                        {"git_commit": "abc", "mode": "quick"})
+    monkeypatch.setattr(report_module, "run_all", lambda quick: failing)
+    at = _audit_page()
+    at.button(key="audit_run").click().run()
+    assert not at.exception
+    assert len(at.error) == 1 and "1 check(s) failed" in at.error[0].value
+
+
 def test_market_page_explains_why_an_upload_is_not_used(market_env):
     market_env.setitem(sys.modules, "yfinance", _fake_yfinance())
     at = _with_upload("4_Market_Data.py")
