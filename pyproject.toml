@@ -9,6 +9,11 @@ description = "Options pricer and stock simulator"
 requires-python = ">=3.11"
 dependencies = ["numpy", "scipy", "pandas"]
 
+[project.optional-dependencies]
+app = ["streamlit", "plotly", "yfinance"]       # the Streamlit app and live market data
+dev = ["pytest", "ruff", "hypothesis"]          # tests and lint (used by CI)
+results = ["plotly", "kaleido"]                 # scripts/generate_results.py (PNG figures)
+
 [tool.setuptools.packages.find]
 where = ["src"]
 

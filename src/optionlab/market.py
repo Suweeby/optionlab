@@ -11,13 +11,14 @@ import os
 import re
 import time
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Protocol
 
 import numpy as np
 import pandas as pd
 
+from optionlab.config import EXPIRED_CHAIN_GRACE_DAYS
 from optionlab.data import DataUnavailableError, normalize_ticker, resolve_cache_dir
 from optionlab.implied_vol import implied_vol
 from optionlab.pricing.black_scholes import bs_price
@@ -174,6 +175,40 @@ def load_option_chain(ticker: str, expiry: date | str, cache_dir: Path | str | N
         return stale("The data source returned no quotes.")
     _write_chain(path, chain)
     return ChainData(ticker, expiry, chain, "network", "Downloaded just now.")
+
+
+def purge_expired_chains(cache_dir: Path | str | None = None, today: date | None = None,
+                         grace_days: int = EXPIRED_CHAIN_GRACE_DAYS) -> list[Path]:
+    """Delete cached option chains whose expiry passed more than `grace_days` days ago.
+
+    Expired chains are never used again (time_to_expiry rejects past expiries and
+    list_expiries skips them); the grace period keeps recent ones for a look back.
+    Only files named <TICKER>_<YYYY-MM-DD>.csv are touched. A file that cannot be deleted
+    (e.g. locked by another program) is skipped and tried again next time.
+    Returns the deleted paths, sorted.
+    """
+    if grace_days < 0:
+        raise ValueError("grace_days must be zero or positive.")
+    folder = resolve_cache_dir(cache_dir) / "options"
+    if not folder.is_dir():
+        return []
+    cutoff = (today or date.today()) - timedelta(days=int(grace_days))
+    deleted = []
+    for path in folder.glob("*_*.csv"):
+        ticker_part, _, expiry = path.stem.rpartition("_")
+        if not ticker_part or not _EXPIRY_RE.match(expiry):
+            continue
+        try:
+            expired = date.fromisoformat(expiry) < cutoff
+        except ValueError:                      # e.g. 2026-13-40
+            continue
+        if expired:
+            try:
+                path.unlink()
+                deleted.append(path)
+            except OSError:
+                continue
+    return sorted(deleted)
 
 
 # ---------------------------------------------------------------- cleaning

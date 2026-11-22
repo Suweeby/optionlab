@@ -223,3 +223,54 @@ def test_default_source_calls_yfinance(tmp_path, monkeypatch):
     assert list_expiries("msft", cache_dir=tmp_path, today=TODAY) == [EXPIRY]
     data = load_option_chain("msft", EXPIRY, cache_dir=tmp_path)
     assert seen == {"symbol": "MSFT", "expiry": EXPIRY} and data.source == "network"
+
+
+# ---------------------------------------------------------------- expired-chain cleanup
+from optionlab.market import purge_expired_chains  # noqa: E402
+
+PURGE_TODAY = date(2026, 11, 22)
+
+
+def _chain_files(tmp_path, names):
+    folder = tmp_path / "options"
+    folder.mkdir(parents=True, exist_ok=True)
+    for name in names:
+        (folder / name).write_text("x")
+    return folder
+
+
+def test_purge_deletes_chains_expired_more_than_a_week_ago(tmp_path):
+    folder = _chain_files(tmp_path, [
+        "AAPL_2026-11-14.csv",      # expired 8 days ago -> deleted
+        "MSFT_2026-11-01.csv",      # expired 21 days ago -> deleted
+        "AAPL_2026-11-15.csv",      # expired exactly 7 days ago -> kept (grace period)
+        "AAPL_2026-11-21.csv",      # expired yesterday -> kept
+        "AAPL_2026-12-11.csv",      # future -> kept
+    ])
+    deleted = purge_expired_chains(tmp_path, today=PURGE_TODAY)
+    assert [p.name for p in deleted] == ["AAPL_2026-11-14.csv", "MSFT_2026-11-01.csv"]
+    assert sorted(p.name for p in folder.iterdir()) == [
+        "AAPL_2026-11-15.csv", "AAPL_2026-11-21.csv", "AAPL_2026-12-11.csv"]
+
+
+def test_purge_leaves_unrecognised_files_alone(tmp_path):
+    folder = _chain_files(tmp_path, ["notes.csv", "AAPL_latest.csv", "AAPL_2026-13-40.csv",
+                                     "_2020-01-01.csv", "AAPL_2020-01-01.txt"])
+    assert purge_expired_chains(tmp_path, today=PURGE_TODAY) == []
+    assert len(list(folder.iterdir())) == 5
+
+
+def test_purge_grace_period_and_missing_folder(tmp_path):
+    assert purge_expired_chains(tmp_path / "nowhere", today=PURGE_TODAY) == []
+    _chain_files(tmp_path, ["AAPL_2026-11-21.csv"])
+    assert purge_expired_chains(tmp_path, today=PURGE_TODAY, grace_days=7) == []
+    assert len(purge_expired_chains(tmp_path, today=PURGE_TODAY, grace_days=0)) == 1
+    with pytest.raises(ValueError):
+        purge_expired_chains(tmp_path, today=PURGE_TODAY, grace_days=-1)
+
+
+def test_purge_never_touches_price_caches(tmp_path):
+    (tmp_path / "AAPL.csv").write_text("date,adj_close\n")
+    _chain_files(tmp_path, ["AAPL_2020-01-01.csv"])
+    purge_expired_chains(tmp_path, today=PURGE_TODAY)
+    assert (tmp_path / "AAPL.csv").exists()

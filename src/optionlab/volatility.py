@@ -12,7 +12,21 @@ from collections.abc import Iterable
 import numpy as np
 import pandas as pd
 
-TRADING_DAYS = 252
+from optionlab.config import MIN_HISTORY_DAYS, TRADING_DAYS  # noqa: F401  (re-exported)
+
+
+def require_min_history(prices: pd.Series, n: int, purpose: str = "this calculation") -> None:
+    """Raise ValueError unless `prices` holds at least `n` daily returns (n + 1 prices).
+
+    Use it before any estimate that is meaningless on too little data, e.g.
+    require_min_history(prices, MIN_HISTORY_DAYS, "a drift estimate").
+    """
+    if n < 1:
+        raise ValueError("n must be at least 1.")
+    have = max(len(prices) - 1, 0)
+    if have < n:
+        raise ValueError(f"Not enough history for {purpose}: need at least {n} daily returns "
+                         f"({n + 1} prices), but the series has {have}.")
 
 
 def _check_prices(prices) -> None:
@@ -94,25 +108,31 @@ def volatility_by_lookback(prices: pd.Series, windows: Iterable[int] = (21, 63, 
     return pd.DataFrame(rows)
 
 
-def annualized_drift(prices: pd.Series, trading_days: float = TRADING_DAYS) -> float:
+def annualized_drift(prices: pd.Series, trading_days: float = TRADING_DAYS,
+                     min_returns: int = MIN_HISTORY_DAYS) -> float:
     """Estimate of the real-world drift mu: mean log return * trading_days + sigma^2 / 2.
 
     Under GBM, E[ln(S_t/S_0)] = (mu - sigma^2/2) t, so we add sigma^2/2 back.
-    WARNING: this estimate is extremely noisy (see drift_standard_error).
+    WARNING: this estimate is extremely noisy (see drift_standard_error). It refuses series
+    shorter than `min_returns` daily returns (default: one year), where it is meaningless.
     """
     _check_trading_days(trading_days)
     r = log_returns(prices)
+    require_min_history(prices, min_returns, "a drift estimate")
     sigma = float(r.std(ddof=1) * math.sqrt(trading_days))
     return float(r.mean() * trading_days + 0.5 * sigma**2)
 
 
-def drift_standard_error(prices: pd.Series, trading_days: float = TRADING_DAYS) -> float:
+def drift_standard_error(prices: pd.Series, trading_days: float = TRADING_DAYS,
+                         min_returns: int = MIN_HISTORY_DAYS) -> float:
     """Standard error of the annualized drift estimate: sigma / sqrt(years of data).
 
     It depends only on the LENGTH of the history, not on how often you sample it.
+    Refuses series shorter than `min_returns` daily returns, like annualized_drift.
     """
     _check_trading_days(trading_days)
     r = log_returns(prices)
+    require_min_history(prices, min_returns, "a drift standard error")
     sigma = float(r.std(ddof=1) * math.sqrt(trading_days))
     years = len(r) / trading_days
     return sigma / math.sqrt(years)

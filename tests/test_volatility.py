@@ -144,3 +144,33 @@ def test_invalid_parameters_raise():
         ewma_volatility(prices, lam=1.0)
     with pytest.raises(ValueError):
         ewma_volatility(prices, lam=0.0)
+
+
+# ---------------------------------------------------------------- minimum history (defect 3)
+from optionlab.volatility import require_min_history  # noqa: E402
+
+
+def test_drift_from_three_prices_is_refused():
+    prices = _series([100.0, 101.0, 102.5])          # used to give ~311 %/yr, SE ~60 %/yr
+    with pytest.raises(ValueError, match="Not enough history for a drift estimate"):
+        annualized_drift(prices)
+    with pytest.raises(ValueError, match="Not enough history for a drift standard error"):
+        drift_standard_error(prices)
+
+
+def test_drift_needs_exactly_one_year_of_returns():
+    t = np.arange(253)                               # 253 prices = 252 returns
+    prices = _series(100 * np.exp(0.10 * t / 252))
+    annualized_drift(prices)                         # exactly enough: fine
+    with pytest.raises(ValueError, match="need at least 252 daily returns"):
+        annualized_drift(prices.iloc[:-1])           # 251 returns
+
+
+def test_drift_minimum_can_be_lowered_on_purpose():
+    prices = _series(100 * np.exp(0.10 * np.arange(64) / 252))
+    assert annualized_drift(prices, min_returns=63) == pytest.approx(0.10, abs=1e-9)
+
+
+def test_require_min_history_rejects_a_nonsense_minimum():
+    with pytest.raises(ValueError):
+        require_min_history(_series([100.0, 101.0]), 0)
