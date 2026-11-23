@@ -1,0 +1,770 @@
+{
+  "manifest": {
+    "generated_utc": "2026-11-22T13:04:43+00:00",
+    "mode": "quick",
+    "git_commit": "5c5859fc0f10701b9654ecfaecf0b155a1f79c44",
+    "uncommitted_changes": true,
+    "python": "3.11.1",
+    "platform": "Windows-10-10.0.26300-SP0",
+    "packages": {
+      "optionlab": "0.1.0",
+      "numpy": "2.4.6",
+      "scipy": "1.17.1",
+      "pandas": "3.1.1"
+    },
+    "seeds": {
+      "validation": 42,
+      "model_audit": 42,
+      "seed_robustness": "0..2"
+    },
+    "sizes": {
+      "invariant_cases": 200,
+      "robustness_seeds": 3,
+      "ks_tests": 20
+    },
+    "checks": 75,
+    "counts": {
+      "PASS": 75,
+      "WARN": 0,
+      "FAIL": 0
+    },
+    "duration_seconds": 9.9
+  },
+  "claims": [
+    {
+      "id": "bs-anchor",
+      "statement": "Black-Scholes gives 10.4506 for the anchor call (S=K=100, r=5%, sigma=20%, T=1)",
+      "location": "README: Using the engine, Results",
+      "status": "PASS",
+      "evidence": "1 of 1 validation checks pass"
+    },
+    {
+      "id": "pricers-agree",
+      "statement": "Black-Scholes, the binomial tree and Monte Carlo agree within their errors",
+      "location": "README: What it does; Pricer page",
+      "status": "PASS",
+      "evidence": "4 of 4 validation checks pass"
+    },
+    {
+      "id": "independent-method",
+      "statement": "A fourth method (numerical integration) reproduces Black-Scholes",
+      "location": "Audit page; docs/theory.md",
+      "status": "PASS",
+      "evidence": "2 of 2 model checks pass"
+    },
+    {
+      "id": "textbook-anchor",
+      "statement": "Prices match Hull's worked example (call 4.76, put 0.81)",
+      "location": "Audit page",
+      "status": "PASS",
+      "evidence": "2 of 2 model checks pass"
+    },
+    {
+      "id": "binomial-rate",
+      "statement": "The binomial error falls like 1/n",
+      "location": "README: Results; Convergence page",
+      "status": "PASS",
+      "evidence": "1 of 1 validation checks pass"
+    },
+    {
+      "id": "mc-rate",
+      "statement": "The Monte Carlo error falls like 1/sqrt(N)",
+      "location": "README: Results; Convergence page",
+      "status": "PASS",
+      "evidence": "1 of 1 validation checks pass"
+    },
+    {
+      "id": "mc-coverage",
+      "statement": "95% intervals cover the true price about 95% of the time",
+      "location": "README: Design notes; Pricer page",
+      "status": "PASS",
+      "evidence": "1 of 1 validation checks pass"
+    },
+    {
+      "id": "antithetic",
+      "statement": "Antithetic variates cut the standard error to about 0.71",
+      "location": "README: Results",
+      "status": "PASS",
+      "evidence": "standard-error ratio 0.707 (claim: about 0.71)"
+    },
+    {
+      "id": "greeks-fd",
+      "statement": "Analytic Greeks match finite differences",
+      "location": "README: What it does",
+      "status": "PASS",
+      "evidence": "1 of 1 validation checks pass"
+    },
+    {
+      "id": "iv-recovers",
+      "statement": "The implied-volatility solver recovers sigma",
+      "location": "README: What it does",
+      "status": "PASS",
+      "evidence": "2 of 2 validation checks pass; 1 of 1 model checks pass"
+    },
+    {
+      "id": "no-arbitrage",
+      "statement": "Prices respect no-arbitrage rules (parity, bounds, monotonicity, convexity)",
+      "location": "docs/theory.md",
+      "status": "PASS",
+      "evidence": "9 of 9 model checks pass"
+    },
+    {
+      "id": "gbm-theory",
+      "statement": "Simulated GBM matches its theoretical moments and distribution",
+      "location": "README: What it does; Simulator page",
+      "status": "PASS",
+      "evidence": "5 of 5 validation checks pass; 1 of 1 model checks pass"
+    },
+    {
+      "id": "seed-robust",
+      "statement": "Results do not depend on one lucky seed",
+      "location": "README: Design notes",
+      "status": "PASS",
+      "evidence": "1 of 1 model checks pass"
+    },
+    {
+      "id": "docs-match-results",
+      "statement": "README numbers match docs/results and the current code",
+      "location": "README: Results",
+      "status": "PASS",
+      "evidence": "8 of 8 consistency checks pass"
+    },
+    {
+      "id": "honest-language",
+      "statement": "The app and docs make no price predictions",
+      "location": "README: top; every page",
+      "status": "PASS",
+      "evidence": "1 of 1 consistency checks pass"
+    },
+    {
+      "id": "documented",
+      "statement": "Public functions have docstrings and type hints",
+      "location": "README: Design notes",
+      "status": "PASS",
+      "evidence": "1 of 1 consistency checks pass"
+    },
+    {
+      "id": "synthetic-not-compared",
+      "statement": "Synthetic (and uploaded) data is never used for the model-vs-market comparison",
+      "location": "README: Design notes; Market Data page",
+      "status": "PASS",
+      "evidence": "guard refuses sample and upload: True; allows downloads: True; Market Data page calls it: True"
+    },
+    {
+      "id": "synthetic-labelled",
+      "statement": "Synthetic fallback data is always labelled and never cached",
+      "location": "README: Design notes",
+      "status": "PASS",
+      "evidence": "source = sample; labelled SYNTHETIC: True; files written: 0"
+    },
+    {
+      "id": "tests-offline",
+      "statement": "The tests need no network",
+      "location": "README: Design notes",
+      "status": "PASS",
+      "evidence": "autouse network guard in tests/conftest.py: True; tests/test_network_guard.py present: True"
+    }
+  ],
+  "results": [
+    {
+      "area": "Black-Scholes",
+      "check": "call, S=K=100, r=5%, sigma=20%, T=1",
+      "expected": 10.4506,
+      "observed": 10.450583572185565,
+      "criterion": "abs error < 1e-4",
+      "status": "PASS"
+    },
+    {
+      "area": "Black-Scholes",
+      "check": "put, same inputs",
+      "expected": 5.5735,
+      "observed": 5.573526022256971,
+      "criterion": "abs error < 1e-4",
+      "status": "PASS"
+    },
+    {
+      "area": "Black-Scholes",
+      "check": "put-call parity C - P = S - K e^(-rT)",
+      "expected": 4.877057549928594,
+      "observed": 4.877057549928594,
+      "criterion": "abs error < 1e-10",
+      "status": "PASS"
+    },
+    {
+      "area": "Black-Scholes",
+      "check": "T -> 0: call tends to intrinsic value",
+      "expected": 10.0,
+      "observed": 10.000000005000004,
+      "criterion": "abs error < 1e-4",
+      "status": "PASS"
+    },
+    {
+      "area": "Black-Scholes",
+      "check": "sigma -> 0: call tends to discounted forward payoff",
+      "expected": 14.389351794935735,
+      "observed": 14.389351794935735,
+      "criterion": "abs error < 1e-6",
+      "status": "PASS"
+    },
+    {
+      "area": "Black-Scholes",
+      "check": "deep in the money: call ~ S - K e^(-rT)",
+      "expected": 204.8770575499286,
+      "observed": 204.8770575757042,
+      "criterion": "abs error < 1e-6",
+      "status": "PASS"
+    },
+    {
+      "area": "Black-Scholes",
+      "check": "deep out of the money: call ~ 0",
+      "expected": 0.0,
+      "observed": 3.416503531317842e-15,
+      "criterion": "abs error < 1e-6",
+      "status": "PASS"
+    },
+    {
+      "area": "Black-Scholes",
+      "check": "negative S, K, sigma or T raise ValueError",
+      "expected": "all raise",
+      "observed": "all raise",
+      "criterion": "every case raises",
+      "status": "PASS"
+    },
+    {
+      "area": "Binomial",
+      "check": "put-call parity inside the tree (n=500)",
+      "expected": 4.877057549928594,
+      "observed": 4.877057549930766,
+      "criterion": "abs error < 1e-9",
+      "status": "PASS"
+    },
+    {
+      "area": "Binomial",
+      "check": "converges to Black-Scholes (n=2000)",
+      "expected": 0.0,
+      "observed": -0.000999796727622737,
+      "criterion": "abs error < 3/n",
+      "status": "PASS"
+    },
+    {
+      "area": "Binomial",
+      "check": "error shrinks like 1/n (10x steps -> 10x smaller)",
+      "expected": 10.0,
+      "observed": 9.988609835878167,
+      "criterion": "ratio within 25% of 10",
+      "status": "PASS"
+    },
+    {
+      "area": "Monte Carlo",
+      "check": "price within 3 standard errors of Black-Scholes (N=10,000)",
+      "expected": 10.450583572185565,
+      "observed": 10.345182037175292,
+      "criterion": "|z| < 3 (z = -0.71)",
+      "status": "PASS"
+    },
+    {
+      "area": "Monte Carlo",
+      "check": "price within 3 standard errors of Black-Scholes (N=100,000)",
+      "expected": 10.450583572185565,
+      "observed": 10.426874625527162,
+      "criterion": "|z| < 3 (z = -0.51)",
+      "status": "PASS"
+    },
+    {
+      "area": "Monte Carlo",
+      "check": "price within 3 standard errors of Black-Scholes (N=1,000,000)",
+      "expected": 10.450583572185565,
+      "observed": 10.457428262929497,
+      "criterion": "|z| < 3 (z = +0.46)",
+      "status": "PASS"
+    },
+    {
+      "area": "Monte Carlo",
+      "check": "95% intervals contain the true price (300 runs)",
+      "expected": 0.95,
+      "observed": 0.96,
+      "criterion": "coverage between 0.92 and 0.98",
+      "status": "PASS"
+    },
+    {
+      "area": "Monte Carlo",
+      "check": "error shrinks like 1/sqrt(N) (100x paths -> 10x smaller)",
+      "expected": 10.0,
+      "observed": 9.984524671752592,
+      "criterion": "ratio within 35% of 10",
+      "status": "PASS"
+    },
+    {
+      "area": "Monte Carlo",
+      "check": "antithetic variates reduce the standard error",
+      "expected": "ratio < 1",
+      "observed": 0.706778520907829,
+      "criterion": "ratio < 0.9",
+      "status": "PASS"
+    },
+    {
+      "area": "Monte Carlo",
+      "check": "put-call parity holds within noise (N=200,000)",
+      "expected": 4.877057549928594,
+      "observed": 4.888614825303122,
+      "criterion": "within 4 combined standard errors",
+      "status": "PASS"
+    },
+    {
+      "area": "GBM",
+      "check": "mean of ln(S_T/S_0) = (mu - sigma^2/2) T",
+      "expected": 0.06,
+      "observed": 0.059954733926774716,
+      "criterion": "within 4 standard errors",
+      "status": "PASS"
+    },
+    {
+      "area": "GBM",
+      "check": "variance of ln(S_T/S_0) = sigma^2 T",
+      "expected": 0.04000000000000001,
+      "observed": 0.039821365513776186,
+      "criterion": "relative error < 2%",
+      "status": "PASS"
+    },
+    {
+      "area": "GBM",
+      "check": "E[S_T] = S_0 e^(mu T)",
+      "expected": 108.32870676749586,
+      "observed": 108.31416542517378,
+      "criterion": "within 4 standard errors",
+      "status": "PASS"
+    },
+    {
+      "area": "GBM",
+      "check": "risk-neutral: discounted E[S_T] = S_0",
+      "expected": 100.0,
+      "observed": 100.0595038350094,
+      "criterion": "within 4 standard errors",
+      "status": "PASS"
+    },
+    {
+      "area": "GBM",
+      "check": "risk-neutral P(S_T > K) = N(d2)",
+      "expected": 0.46257411156882894,
+      "observed": 0.463195,
+      "criterion": "within 4 standard errors",
+      "status": "PASS"
+    },
+    {
+      "area": "Volatility",
+      "check": "estimator recovers sigma = 30% from 40 years of daily data",
+      "expected": 0.3,
+      "observed": 0.2979380440630523,
+      "criterion": "abs error < 0.01",
+      "status": "PASS"
+    },
+    {
+      "area": "Greeks",
+      "check": "analytic Greeks match finite differences (5 Greeks, call and put)",
+      "expected": 0.0,
+      "observed": 2.3679908553668332e-08,
+      "criterion": "max relative difference < 1e-4",
+      "status": "PASS"
+    },
+    {
+      "area": "Greeks",
+      "check": "delta(call) - delta(put) = 1",
+      "expected": 1.0,
+      "observed": 1.0,
+      "criterion": "abs error < 1e-12",
+      "status": "PASS"
+    },
+    {
+      "area": "Implied volatility",
+      "check": "round trip: price a call at sigma=0.25, solve back",
+      "expected": 0.25,
+      "observed": 0.24999999999999983,
+      "criterion": "abs error < 1e-8",
+      "status": "PASS"
+    },
+    {
+      "area": "Implied volatility",
+      "check": "round trip: price a put at sigma=0.25, solve back",
+      "expected": 0.25,
+      "observed": 0.24999999999999997,
+      "criterion": "abs error < 1e-8",
+      "status": "PASS"
+    },
+    {
+      "area": "Implied volatility",
+      "check": "Newton-Raphson converges in a few steps at the money",
+      "expected": "<= 6",
+      "observed": 3,
+      "criterion": "iterations <= 6",
+      "status": "PASS"
+    },
+    {
+      "area": "Implied volatility",
+      "check": "bisection fallback solves the case where Newton cannot start",
+      "expected": 0.8,
+      "observed": 0.8000000002266026,
+      "criterion": "abs error < 1e-7, method = bisection",
+      "status": "PASS"
+    },
+    {
+      "area": "Implied volatility",
+      "check": "price below the no-arbitrage minimum raises ValueError",
+      "expected": "raises",
+      "observed": "raises",
+      "criterion": "raises",
+      "status": "PASS"
+    },
+    {
+      "area": "Independent method",
+      "check": "quadrature matches Black-Scholes, S=K=100, r=5%, sigma=20%, T=1",
+      "expected": 10.450583572185565,
+      "observed": 10.450583572185613,
+      "criterion": "abs error < 1e-8",
+      "status": "PASS"
+    },
+    {
+      "area": "Independent method",
+      "check": "quadrature matches Black-Scholes (10 options)",
+      "expected": 0.0,
+      "observed": 1.0302869668521453e-13,
+      "criterion": "max abs error < 1e-8",
+      "status": "PASS"
+    },
+    {
+      "area": "Textbook anchor",
+      "check": "Hull example call: S=42, K=40, r=10%, sigma=20%, T=0.5",
+      "expected": 4.76,
+      "observed": 4.759422392871532,
+      "criterion": "equal to 2 decimals",
+      "status": "PASS"
+    },
+    {
+      "area": "Textbook anchor",
+      "check": "Hull example put: S=42, K=40, r=10%, sigma=20%, T=0.5",
+      "expected": 0.81,
+      "observed": 0.8085993729000922,
+      "criterion": "equal to 2 decimals",
+      "status": "PASS"
+    },
+    {
+      "area": "No-arbitrage",
+      "check": "put-call parity (200 random options, seed 42)",
+      "expected": 0,
+      "observed": 0,
+      "criterion": "0 violations",
+      "status": "PASS"
+    },
+    {
+      "area": "No-arbitrage",
+      "check": "price bounds (200 random options, seed 42)",
+      "expected": 0,
+      "observed": 0,
+      "criterion": "0 violations",
+      "status": "PASS"
+    },
+    {
+      "area": "No-arbitrage",
+      "check": "call increases with sigma (200 random options, seed 42)",
+      "expected": 0,
+      "observed": 0,
+      "criterion": "0 violations",
+      "status": "PASS"
+    },
+    {
+      "area": "No-arbitrage",
+      "check": "call increases with T (200 random options, seed 42)",
+      "expected": 0,
+      "observed": 0,
+      "criterion": "0 violations",
+      "status": "PASS"
+    },
+    {
+      "area": "No-arbitrage",
+      "check": "call decreases in K, slope in [-e^(-rT), 0] (200 random options, seed 42)",
+      "expected": 0,
+      "observed": 0,
+      "criterion": "0 violations",
+      "status": "PASS"
+    },
+    {
+      "area": "No-arbitrage",
+      "check": "call is convex in K (200 random options, seed 42)",
+      "expected": 0,
+      "observed": 0,
+      "criterion": "0 violations",
+      "status": "PASS"
+    },
+    {
+      "area": "No-arbitrage",
+      "check": "call delta in (0, 1) (200 random options, seed 42)",
+      "expected": 0,
+      "observed": 0,
+      "criterion": "0 violations",
+      "status": "PASS"
+    },
+    {
+      "area": "No-arbitrage",
+      "check": "gamma > 0 and vega > 0 (200 random options, seed 42)",
+      "expected": 0,
+      "observed": 0,
+      "criterion": "0 violations",
+      "status": "PASS"
+    },
+    {
+      "area": "No-arbitrage",
+      "check": "implied volatility recovers sigma (197 random options, seed 42)",
+      "expected": 0,
+      "observed": 0,
+      "criterion": "0 violations",
+      "status": "PASS"
+    },
+    {
+      "area": "Seed robustness",
+      "check": "validation suite rerun with 3 seeds (0..2)",
+      "expected": "every check passes on every seed",
+      "observed": "31 of 31 checks pass on every seed",
+      "criterion": "PASS: 100%; WARN: each check >= 90%",
+      "status": "PASS"
+    },
+    {
+      "area": "Distribution",
+      "check": "GBM daily log returns are normal (KS test, 20 paths x 1000 days)",
+      "expected": "about 1.0 rejections at the 5% level by chance",
+      "observed": "2 rejections; median p = 0.22; chance of >= 2: 0.264",
+      "criterion": "FAIL only if that chance < 0.001",
+      "status": "PASS"
+    },
+    {
+      "area": "README vs results",
+      "check": "results table: Binomial tree, n = 100",
+      "expected": "10.4306 / -0.0200 / 0.0000",
+      "observed": "10.4306 / -0.0200 / n/a",
+      "criterion": "price / error / SE equal to 4 decimals",
+      "status": "PASS"
+    },
+    {
+      "area": "README vs results",
+      "check": "results table: Binomial tree, n = 2,000",
+      "expected": "10.4496 / -0.0010 / 0.0000",
+      "observed": "10.4496 / -0.0010 / n/a",
+      "criterion": "price / error / SE equal to 4 decimals",
+      "status": "PASS"
+    },
+    {
+      "area": "README vs results",
+      "check": "results table: Monte Carlo, N = 100,000",
+      "expected": "10.4205 / -0.0300 / 0.0468",
+      "observed": "10.4205 / -0.0300 / 0.0468",
+      "criterion": "price / error / SE equal to 4 decimals",
+      "status": "PASS"
+    },
+    {
+      "area": "README vs results",
+      "check": "results table: Monte Carlo, N = 100,000, antithetic",
+      "expected": "10.4673 / +0.0167 / 0.0331",
+      "observed": "10.4673 / +0.0167 / 0.0331",
+      "criterion": "price / error / SE equal to 4 decimals",
+      "status": "PASS"
+    },
+    {
+      "area": "README vs results",
+      "check": "results table: Monte Carlo, N = 1,000,000, antithetic",
+      "expected": "10.4565 / +0.0060 / 0.0104",
+      "observed": "10.4565 / +0.0060 / 0.0104",
+      "criterion": "price / error / SE equal to 4 decimals",
+      "status": "PASS"
+    },
+    {
+      "area": "README vs results",
+      "check": "README 'exact value' equals Black-Scholes",
+      "expected": "10.4506",
+      "observed": "10.4506",
+      "criterion": "equal to 4 decimals",
+      "status": "PASS"
+    },
+    {
+      "area": "README vs results",
+      "check": "README check count matches validation.csv and the current suite",
+      "expected": "31 in csv, 31 now, all PASS",
+      "observed": "README says 31",
+      "criterion": "all equal, all PASS",
+      "status": "PASS"
+    },
+    {
+      "area": "README vs results",
+      "check": "binomial results still match the current code",
+      "expected": 0.0,
+      "observed": 0.0,
+      "criterion": "max abs difference < 1e-10",
+      "status": "PASS"
+    },
+    {
+      "area": "Honesty",
+      "check": "no prediction language in 12 app/README/docs files",
+      "expected": 0,
+      "observed": "0",
+      "criterion": "0 banned phrases outside allowed negations",
+      "status": "PASS"
+    },
+    {
+      "area": "Documentation",
+      "check": "public functions have docstrings and type hints",
+      "expected": 0,
+      "observed": "0",
+      "criterion": "0 missing",
+      "status": "PASS"
+    },
+    {
+      "area": "Claims",
+      "check": "[bs-anchor] Black-Scholes gives 10.4506 for the anchor call (S=K=100, r=5%, sigma=20%, T=1)",
+      "expected": "its check passes",
+      "observed": "1 of 1 validation checks pass",
+      "criterion": "stated in: README: Using the engine, Results",
+      "status": "PASS"
+    },
+    {
+      "area": "Claims",
+      "check": "[pricers-agree] Black-Scholes, the binomial tree and Monte Carlo agree within their errors",
+      "expected": "its check passes",
+      "observed": "4 of 4 validation checks pass",
+      "criterion": "stated in: README: What it does; Pricer page",
+      "status": "PASS"
+    },
+    {
+      "area": "Claims",
+      "check": "[independent-method] A fourth method (numerical integration) reproduces Black-Scholes",
+      "expected": "its check passes",
+      "observed": "2 of 2 model checks pass",
+      "criterion": "stated in: Audit page; docs/theory.md",
+      "status": "PASS"
+    },
+    {
+      "area": "Claims",
+      "check": "[textbook-anchor] Prices match Hull's worked example (call 4.76, put 0.81)",
+      "expected": "its check passes",
+      "observed": "2 of 2 model checks pass",
+      "criterion": "stated in: Audit page",
+      "status": "PASS"
+    },
+    {
+      "area": "Claims",
+      "check": "[binomial-rate] The binomial error falls like 1/n",
+      "expected": "its check passes",
+      "observed": "1 of 1 validation checks pass",
+      "criterion": "stated in: README: Results; Convergence page",
+      "status": "PASS"
+    },
+    {
+      "area": "Claims",
+      "check": "[mc-rate] The Monte Carlo error falls like 1/sqrt(N)",
+      "expected": "its check passes",
+      "observed": "1 of 1 validation checks pass",
+      "criterion": "stated in: README: Results; Convergence page",
+      "status": "PASS"
+    },
+    {
+      "area": "Claims",
+      "check": "[mc-coverage] 95% intervals cover the true price about 95% of the time",
+      "expected": "its check passes",
+      "observed": "1 of 1 validation checks pass",
+      "criterion": "stated in: README: Design notes; Pricer page",
+      "status": "PASS"
+    },
+    {
+      "area": "Claims",
+      "check": "[antithetic] Antithetic variates cut the standard error to about 0.71",
+      "expected": "its check passes",
+      "observed": "standard-error ratio 0.707 (claim: about 0.71)",
+      "criterion": "stated in: README: Results",
+      "status": "PASS"
+    },
+    {
+      "area": "Claims",
+      "check": "[greeks-fd] Analytic Greeks match finite differences",
+      "expected": "its check passes",
+      "observed": "1 of 1 validation checks pass",
+      "criterion": "stated in: README: What it does",
+      "status": "PASS"
+    },
+    {
+      "area": "Claims",
+      "check": "[iv-recovers] The implied-volatility solver recovers sigma",
+      "expected": "its check passes",
+      "observed": "2 of 2 validation checks pass; 1 of 1 model checks pass",
+      "criterion": "stated in: README: What it does",
+      "status": "PASS"
+    },
+    {
+      "area": "Claims",
+      "check": "[no-arbitrage] Prices respect no-arbitrage rules (parity, bounds, monotonicity, convexity)",
+      "expected": "its check passes",
+      "observed": "9 of 9 model checks pass",
+      "criterion": "stated in: docs/theory.md",
+      "status": "PASS"
+    },
+    {
+      "area": "Claims",
+      "check": "[gbm-theory] Simulated GBM matches its theoretical moments and distribution",
+      "expected": "its check passes",
+      "observed": "5 of 5 validation checks pass; 1 of 1 model checks pass",
+      "criterion": "stated in: README: What it does; Simulator page",
+      "status": "PASS"
+    },
+    {
+      "area": "Claims",
+      "check": "[seed-robust] Results do not depend on one lucky seed",
+      "expected": "its check passes",
+      "observed": "1 of 1 model checks pass",
+      "criterion": "stated in: README: Design notes",
+      "status": "PASS"
+    },
+    {
+      "area": "Claims",
+      "check": "[docs-match-results] README numbers match docs/results and the current code",
+      "expected": "its check passes",
+      "observed": "8 of 8 consistency checks pass",
+      "criterion": "stated in: README: Results",
+      "status": "PASS"
+    },
+    {
+      "area": "Claims",
+      "check": "[honest-language] The app and docs make no price predictions",
+      "expected": "its check passes",
+      "observed": "1 of 1 consistency checks pass",
+      "criterion": "stated in: README: top; every page",
+      "status": "PASS"
+    },
+    {
+      "area": "Claims",
+      "check": "[documented] Public functions have docstrings and type hints",
+      "expected": "its check passes",
+      "observed": "1 of 1 consistency checks pass",
+      "criterion": "stated in: README: Design notes",
+      "status": "PASS"
+    },
+    {
+      "area": "Claims",
+      "check": "[synthetic-not-compared] Synthetic (and uploaded) data is never used for the model-vs-market comparison",
+      "expected": "its check passes",
+      "observed": "guard refuses sample and upload: True; allows downloads: True; Market Data page calls it: True",
+      "criterion": "stated in: README: Design notes; Market Data page",
+      "status": "PASS"
+    },
+    {
+      "area": "Claims",
+      "check": "[synthetic-labelled] Synthetic fallback data is always labelled and never cached",
+      "expected": "its check passes",
+      "observed": "source = sample; labelled SYNTHETIC: True; files written: 0",
+      "criterion": "stated in: README: Design notes",
+      "status": "PASS"
+    },
+    {
+      "area": "Claims",
+      "check": "[tests-offline] The tests need no network",
+      "expected": "its check passes",
+      "observed": "autouse network guard in tests/conftest.py: True; tests/test_network_guard.py present: True",
+      "criterion": "stated in: README: Design notes",
+      "status": "PASS"
+    }
+  ]
+}
