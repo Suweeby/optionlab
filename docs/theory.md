@@ -121,7 +121,41 @@ Partial derivatives of the price (`phi` is the normal density):
 - Drift: `mu_hat = mean(r_t) * 252 + sigma_hat^2 / 2`, with standard error `sigma / sqrt(years)`.
   It depends only on the length of the history, so it is far noisier than volatility.
 
-## 11. Questions I should be able to answer
+## 11. Quadrature pricing: a fourth, independent method
+
+- Under risk-neutral GBM, `y = ln(S_T)` is normal with mean `m = ln S + (r - sigma^2/2) T` and
+  standard deviation `s = sigma sqrt(T)`. The price is the discounted expected payoff:
+  `call = e^(-rT) * integral over y > ln K of (e^y - K) phi(y) dy`, with `phi` that normal density.
+- `scipy.integrate.quad` evaluates the integral numerically. It never uses the Black-Scholes
+  formula, so agreement (about 1e-14 on the anchor) is an independent check of `bs_price`.
+- The integral is cut at 12 standard deviations, where the density is below 1e-31. The upper limit
+  is widened by `s^2` for the call, because `e^y phi(y)` is a normal density shifted up by `s^2`.
+
+## 12. Property-based testing
+
+- An ordinary test checks one hand-picked input. A property-based test states a rule that must hold
+  for every valid input, and the `hypothesis` library searches for a counterexample (hundreds of
+  random inputs per rule), then shrinks any failure to the simplest one.
+- Rules checked: put-call parity; price bounds `max(S - K e^(-rT), 0) <= C <= S`; the call increases
+  with sigma and with T; it decreases in K with slope between `-e^(-rT)` and 0 and is convex in K;
+  `0 <= delta <= 1`, gamma and vega >= 0; implied volatility recovers sigma where vega is not tiny;
+  quadrature equals Black-Scholes.
+- Far from the money the exact delta is within 1e-9 of 0 or 1 and rounds to it in floating point,
+  so strict inequalities are only required where `|d1| < 6`.
+
+## 13. The KS test and repeated tests
+
+- The Kolmogorov-Smirnov statistic is the largest gap between the sample's empirical CDF and the
+  theoretical CDF. Here: daily simulated log returns against `Normal((mu - sigma^2/2) dt, sigma^2 dt)`.
+- A p-value below 0.05 rejects normality, but if the data really are normal that still happens 5%
+  of the time. One rejection proves nothing.
+- So the audit runs 20 independent tests (100 in full mode) and counts rejections. Under the null
+  the count is `Binomial(n, 0.05)`; the check fails only if that many rejections would happen by
+  chance with probability below 0.001. Example: 2 rejections in 20 has chance 0.26, which passes.
+- The same idea guards the seed-robustness check: a statistical check may fail on an occasional
+  seed, so 100% passes is PASS and at least 90% is WARN.
+
+## 14. Questions I should be able to answer
 
 1. *Why does the real-world expected return not appear in the option price?* Replication / no-arbitrage.
 2. *Where does `sigma^2/2` come from?* Normal MGF (or the Ito correction).

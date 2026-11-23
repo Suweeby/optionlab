@@ -39,6 +39,29 @@ system or financial advice. Know these limits before reading anything into its n
 - The risk-free rate is a user input; the app does not look it up.
 - Offline, the app falls back to cached data. Only the price loader can fall back to clearly
   labelled SYNTHETIC sample data, and the Market Data page refuses to use it.
+- **Adjusted closes change after the fact.** The data source re-adjusts past prices after each
+  dividend or split, so a refresh downloads the whole cached span again instead of appending.
+- **Uploaded files are not verified.** A user CSV is cleaned and checked like a download, but its
+  origin cannot be checked, so it is labelled user-supplied and never used for the model-vs-market
+  comparison.
+- **The data-quality audit checks internal consistency only** (dates, positive prices, history
+  length, gaps, large one-day moves, staleness). It cannot tell whether the source's prices are
+  correct. Exchange holidays count as missing days, and real crashes trigger the large-move warning
+  just as bad prices do.
+- **Short histories limit what can be estimated:** at least 21 daily returns for a volatility
+  estimate and 252 for a drift estimate. Younger stocks get volatility but no historical drift.
+
+## Audit limits
+- The audits show that the code meets the project's own stated claims. They do not show that
+  Black-Scholes describes real markets.
+- A clean audit means no known problem was found, not that none exists: the checks cover the
+  claims that were written down.
+- Statistical checks can fail by chance. The audit uses tolerant criteria (about 4 standard
+  errors, coverage bands, repeated KS tests judged by their binomial count) so false alarms are
+  rare but possible; a single WARN in the seed-robustness check is allowed for this reason.
+- The quick mode used by tests and CI runs fewer random cases than `--full`.
+- Some checks are static: for example, "tests need no network" is confirmed by finding the guard
+  in the test configuration; the test suite itself shows the guard works.
 
 ## Not implemented
 American options, dividend yield, exotic payoffs, GARCH volatility and out-of-sample comparison of
