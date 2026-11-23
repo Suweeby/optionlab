@@ -1,6 +1,6 @@
 # OptionLab audit report
 
-Generated 2026-11-22T13:04:43+00:00 · quick mode · commit `5c5859fc0f10` (with uncommitted changes)
+Generated 2026-11-23T07:11:27+00:00 · full mode · commit `16ed2dff256e` (with uncommitted changes)
 
 **75 PASS · 0 WARN · 0 FAIL** across 75 checks.
 
@@ -10,18 +10,18 @@ These checks show that the code does what the project states: reference values, 
 
 | field | value |
 | --- | --- |
-| generated_utc | 2026-11-22T13:04:43+00:00 |
-| mode | quick |
-| git_commit | 5c5859fc0f10701b9654ecfaecf0b155a1f79c44 |
+| generated_utc | 2026-11-23T07:11:27+00:00 |
+| mode | full |
+| git_commit | 16ed2dff256e5dc632c845744553111e2c165880 |
 | uncommitted_changes | True |
 | python | 3.11.1 |
 | platform | Windows-10-10.0.26300-SP0 |
 | packages | {"optionlab": "0.1.0", "numpy": "2.4.6", "scipy": "1.17.1", "pandas": "3.1.1"} |
-| seeds | {"validation": 42, "model_audit": 42, "seed_robustness": "0..2"} |
-| sizes | {"invariant_cases": 200, "robustness_seeds": 3, "ks_tests": 20} |
+| seeds | {"validation": 42, "model_audit": 42, "seed_robustness": "0..19"} |
+| sizes | {"invariant_cases": 2000, "robustness_seeds": 20, "ks_tests": 100} |
 | checks | 75 |
 | counts | {"PASS": 75, "WARN": 0, "FAIL": 0} |
-| duration_seconds | 9.9 |
+| duration_seconds | 19.1 |
 
 ## Claims
 
@@ -86,17 +86,17 @@ These checks show that the code does what the project states: reference values, 
 | Independent method | quadrature matches Black-Scholes (10 options) | 0 | 1.03029e-13 | max abs error < 1e-8 | PASS |
 | Textbook anchor | Hull example call: S=42, K=40, r=10%, sigma=20%, T=0.5 | 4.76 | 4.75942 | equal to 2 decimals | PASS |
 | Textbook anchor | Hull example put: S=42, K=40, r=10%, sigma=20%, T=0.5 | 0.81 | 0.808599 | equal to 2 decimals | PASS |
-| No-arbitrage | put-call parity (200 random options, seed 42) | 0 | 0 | 0 violations | PASS |
-| No-arbitrage | price bounds (200 random options, seed 42) | 0 | 0 | 0 violations | PASS |
-| No-arbitrage | call increases with sigma (200 random options, seed 42) | 0 | 0 | 0 violations | PASS |
-| No-arbitrage | call increases with T (200 random options, seed 42) | 0 | 0 | 0 violations | PASS |
-| No-arbitrage | call decreases in K, slope in [-e^(-rT), 0] (200 random options, seed 42) | 0 | 0 | 0 violations | PASS |
-| No-arbitrage | call is convex in K (200 random options, seed 42) | 0 | 0 | 0 violations | PASS |
-| No-arbitrage | call delta in (0, 1) (200 random options, seed 42) | 0 | 0 | 0 violations | PASS |
-| No-arbitrage | gamma > 0 and vega > 0 (200 random options, seed 42) | 0 | 0 | 0 violations | PASS |
-| No-arbitrage | implied volatility recovers sigma (197 random options, seed 42) | 0 | 0 | 0 violations | PASS |
-| Seed robustness | validation suite rerun with 3 seeds (0..2) | every check passes on every seed | 31 of 31 checks pass on every seed | PASS: 100%; WARN: each check >= 90% | PASS |
-| Distribution | GBM daily log returns are normal (KS test, 20 paths x 1000 days) | about 1.0 rejections at the 5% level by chance | 2 rejections; median p = 0.22; chance of >= 2: 0.264 | FAIL only if that chance < 0.001 | PASS |
+| No-arbitrage | put-call parity (2000 random options, seed 42) | 0 | 0 | 0 violations | PASS |
+| No-arbitrage | price bounds (2000 random options, seed 42) | 0 | 0 | 0 violations | PASS |
+| No-arbitrage | call increases with sigma (2000 random options, seed 42) | 0 | 0 | 0 violations | PASS |
+| No-arbitrage | call increases with T (2000 random options, seed 42) | 0 | 0 | 0 violations | PASS |
+| No-arbitrage | call decreases in K, slope in [-e^(-rT), 0] (2000 random options, seed 42) | 0 | 0 | 0 violations | PASS |
+| No-arbitrage | call is convex in K (2000 random options, seed 42) | 0 | 0 | 0 violations | PASS |
+| No-arbitrage | call delta in (0, 1) (2000 random options, seed 42) | 0 | 0 | 0 violations | PASS |
+| No-arbitrage | gamma > 0 and vega > 0 (2000 random options, seed 42) | 0 | 0 | 0 violations | PASS |
+| No-arbitrage | implied volatility recovers sigma (1946 random options, seed 42) | 0 | 0 | 0 violations | PASS |
+| Seed robustness | validation suite rerun with 20 seeds (0..19) | every check passes on every seed | 31 of 31 checks pass on every seed | PASS: 100%; WARN: each check >= 90% | PASS |
+| Distribution | GBM daily log returns are normal (KS test, 100 paths x 1000 days) | about 5.0 rejections at the 5% level by chance | 3 rejections; median p = 0.42; chance of >= 3: 0.882 | FAIL only if that chance < 0.001 | PASS |
 | README vs results | results table: Binomial tree, n = 100 | 10.4306 / -0.0200 / 0.0000 | 10.4306 / -0.0200 / n/a | price / error / SE equal to 4 decimals | PASS |
 | README vs results | results table: Binomial tree, n = 2,000 | 10.4496 / -0.0010 / 0.0000 | 10.4496 / -0.0010 / n/a | price / error / SE equal to 4 decimals | PASS |
 | README vs results | results table: Monte Carlo, N = 100,000 | 10.4205 / -0.0300 / 0.0468 | 10.4205 / -0.0300 / 0.0468 | price / error / SE equal to 4 decimals | PASS |

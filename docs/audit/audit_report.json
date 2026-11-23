@@ -1,8 +1,8 @@
 {
   "manifest": {
-    "generated_utc": "2026-11-22T13:04:43+00:00",
-    "mode": "quick",
-    "git_commit": "5c5859fc0f10701b9654ecfaecf0b155a1f79c44",
+    "generated_utc": "2026-11-23T07:11:27+00:00",
+    "mode": "full",
+    "git_commit": "16ed2dff256e5dc632c845744553111e2c165880",
     "uncommitted_changes": true,
     "python": "3.11.1",
     "platform": "Windows-10-10.0.26300-SP0",
@@ -15,12 +15,12 @@
     "seeds": {
       "validation": 42,
       "model_audit": 42,
-      "seed_robustness": "0..2"
+      "seed_robustness": "0..19"
     },
     "sizes": {
-      "invariant_cases": 200,
-      "robustness_seeds": 3,
-      "ks_tests": 20
+      "invariant_cases": 2000,
+      "robustness_seeds": 20,
+      "ks_tests": 100
     },
     "checks": 75,
     "counts": {
@@ -28,7 +28,7 @@
       "WARN": 0,
       "FAIL": 0
     },
-    "duration_seconds": 9.9
+    "duration_seconds": 19.1
   },
   "claims": [
     {
@@ -448,7 +448,7 @@
     },
     {
       "area": "No-arbitrage",
-      "check": "put-call parity (200 random options, seed 42)",
+      "check": "put-call parity (2000 random options, seed 42)",
       "expected": 0,
       "observed": 0,
       "criterion": "0 violations",
@@ -456,7 +456,7 @@
     },
     {
       "area": "No-arbitrage",
-      "check": "price bounds (200 random options, seed 42)",
+      "check": "price bounds (2000 random options, seed 42)",
       "expected": 0,
       "observed": 0,
       "criterion": "0 violations",
@@ -464,7 +464,7 @@
     },
     {
       "area": "No-arbitrage",
-      "check": "call increases with sigma (200 random options, seed 42)",
+      "check": "call increases with sigma (2000 random options, seed 42)",
       "expected": 0,
       "observed": 0,
       "criterion": "0 violations",
@@ -472,7 +472,7 @@
     },
     {
       "area": "No-arbitrage",
-      "check": "call increases with T (200 random options, seed 42)",
+      "check": "call increases with T (2000 random options, seed 42)",
       "expected": 0,
       "observed": 0,
       "criterion": "0 violations",
@@ -480,7 +480,7 @@
     },
     {
       "area": "No-arbitrage",
-      "check": "call decreases in K, slope in [-e^(-rT), 0] (200 random options, seed 42)",
+      "check": "call decreases in K, slope in [-e^(-rT), 0] (2000 random options, seed 42)",
       "expected": 0,
       "observed": 0,
       "criterion": "0 violations",
@@ -488,7 +488,7 @@
     },
     {
       "area": "No-arbitrage",
-      "check": "call is convex in K (200 random options, seed 42)",
+      "check": "call is convex in K (2000 random options, seed 42)",
       "expected": 0,
       "observed": 0,
       "criterion": "0 violations",
@@ -496,7 +496,7 @@
     },
     {
       "area": "No-arbitrage",
-      "check": "call delta in (0, 1) (200 random options, seed 42)",
+      "check": "call delta in (0, 1) (2000 random options, seed 42)",
       "expected": 0,
       "observed": 0,
       "criterion": "0 violations",
@@ -504,7 +504,7 @@
     },
     {
       "area": "No-arbitrage",
-      "check": "gamma > 0 and vega > 0 (200 random options, seed 42)",
+      "check": "gamma > 0 and vega > 0 (2000 random options, seed 42)",
       "expected": 0,
       "observed": 0,
       "criterion": "0 violations",
@@ -512,7 +512,7 @@
     },
     {
       "area": "No-arbitrage",
-      "check": "implied volatility recovers sigma (197 random options, seed 42)",
+      "check": "implied volatility recovers sigma (1946 random options, seed 42)",
       "expected": 0,
       "observed": 0,
       "criterion": "0 violations",
@@ -520,7 +520,7 @@
     },
     {
       "area": "Seed robustness",
-      "check": "validation suite rerun with 3 seeds (0..2)",
+      "check": "validation suite rerun with 20 seeds (0..19)",
       "expected": "every check passes on every seed",
       "observed": "31 of 31 checks pass on every seed",
       "criterion": "PASS: 100%; WARN: each check >= 90%",
@@ -528,9 +528,9 @@
     },
     {
       "area": "Distribution",
-      "check": "GBM daily log returns are normal (KS test, 20 paths x 1000 days)",
-      "expected": "about 1.0 rejections at the 5% level by chance",
-      "observed": "2 rejections; median p = 0.22; chance of >= 2: 0.264",
+      "check": "GBM daily log returns are normal (KS test, 100 paths x 1000 days)",
+      "expected": "about 5.0 rejections at the 5% level by chance",
+      "observed": "3 rejections; median p = 0.42; chance of >= 3: 0.882",
       "criterion": "FAIL only if that chance < 0.001",
       "status": "PASS"
     },
